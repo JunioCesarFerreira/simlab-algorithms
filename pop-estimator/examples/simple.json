@@ -1,0 +1,86 @@
+{
+    "name": "Example P2 instance (compact, derived from SimLab Ind2)",
+    "parameters": {
+        "simulation": {
+            "duration": 180,
+            "random_seeds": [
+                336157,
+                35239,
+                5343
+            ]
+        },
+        "problem": {
+            "name": "problem2",
+            "radius_of_reach": 45,
+            "radius_of_inter": 100,
+            "region": [
+                -150,
+                -150,
+                150,
+                150
+            ],
+            "sink": [
+                3,
+                9
+            ],
+            "candidates": [
+                [
+                    -23,
+                    24
+                ],
+                [
+                    -59,
+                    9
+                ],
+                [
+                    -26,
+                    -41
+                ],
+                [
+                    -46,
+                    -65
+                ],
+                [
+                    21,
+                    -26
+                ],
+                [
+                    -65,
+                    -25
+                ],
+                [
+                    -36,
+                    -6
+                ],
+                [
+                    38,
+                    5
+                ],
+                [
+                    -12,
+                    -11
+                ],
+                [
+                    -5,
+                    -31
+                ]
+            ],
+            "mobile_nodes": [
+                {
+                    "name": "node1",
+                    "source_code": "node.c",
+                    "speed": 5,
+                    "time_step": 1,
+                    "is_closed": true,
+                    "is_round_trip": false,
+                    "path_segments": [
+                        [
+                            "-22 + 54 * np.cos(2 * np.pi * t)",
+                            "-10 + 44 * np.sin(2 * np.pi * t)"
+                        ]
+                    ]
+                }
+            ]
+        }
+    }
+}
