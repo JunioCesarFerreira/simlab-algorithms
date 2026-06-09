@@ -10,23 +10,26 @@ Design notes:
   associate one :class:`SSHWorker` per port and dispatch tasks via a
   :class:`queue.Queue`. At most one simulation is active per container.
 
+* Connection model mirrors ``wsn-design-space-exploration/batch_runner``:
+  a fresh SSH connection is created for each task and always closed in
+  a ``finally`` block, regardless of success or failure. When a password
+  is provided, public-key and agent auth are disabled so the connection
+  goes straight to password auth (no spurious "Authentication failed" noise
+  in the logs).
+
 * Failures are retried up to ``max_retries`` times before the task is marked
   FAILED. Other tasks keep going.
-
-* We make sure connections are always closed in ``shutdown``.
 """
 
 from __future__ import annotations
 
-import os
 import queue
-import stat
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from p2_population_estimator.logging_utils import get_logger
 
@@ -48,12 +51,16 @@ class SimulationTask:
     # The worker calls ``prepare_local`` to produce files that should be uploaded
     # before running the command. Returns the list of local file paths.
     prepare_local: Callable[[Path], list[Path]]
-    # The remote command (after files are uploaded). May reference
-    # ``{simulation_file}`` and other placeholders. The command is formatted
-    # with ``placeholders`` below.
+    # The remote command template. May reference ``{simulation_file}``,
+    # ``{workdir}``, and any extra keys in ``placeholders``.
     command_template: str
     placeholders: dict[str, str] = field(default_factory=dict)
-    # Where to write the combined remote stdout/stderr locally.
+    # Absolute remote path to the log file to download after the run.
+    # If None, falls back to remote_workdir / remote_log_filename.
+    remote_log_path: Optional[PurePosixPath] = None
+    # Filename of the Cooja output log on the remote host (used when remote_log_path is None).
+    remote_log_filename: str = "COOJA.testlog"
+    # Local filename where the downloaded remote log is saved.
     log_filename: str = "cooja.log"
     timeout_s: int = 900
 
@@ -73,7 +80,15 @@ class TaskResult:
 # Worker
 # ---------------------------------------------------------------------------
 class SSHWorker(threading.Thread):
-    """One worker bound to a single SSH port. Pulls tasks from a queue."""
+    """One worker bound to a single SSH port. Pulls tasks from a queue.
+
+    SSH connection model (mirrors wsn-dse batch_runner.create_ssh):
+    - A brand-new ``SSHClient`` is created at the start of each task.
+    - When a password is supplied, ``allow_agent`` and ``look_for_keys`` are
+      disabled so Paramiko goes straight to password auth without generating
+      spurious public-key failure log lines.
+    - The connection is always closed in a ``finally`` block after the task.
+    """
 
     def __init__(
         self,
@@ -100,57 +115,47 @@ class SSHWorker(threading.Thread):
         self.connect_timeout_s = connect_timeout_s
         self.key_filename = key_filename
         self.password = password
-        self._client: Any = None  # paramiko.SSHClient when connected
 
     # ------------------------------------------------------------------ #
     def run(self) -> None:
-        try:
-            while True:
-                task = self.in_queue.get()
-                try:
-                    if task is None:
-                        return
-                    result = self._handle_task(task)
-                    with self.out_lock:
-                        self.out_list.append(result)
-                finally:
-                    self.in_queue.task_done()
-        finally:
-            self._close()
+        while True:
+            task = self.in_queue.get()
+            try:
+                if task is None:
+                    return
+                result = self._handle_task(task)
+                with self.out_lock:
+                    self.out_list.append(result)
+            finally:
+                self.in_queue.task_done()
 
     # ------------------------------------------------------------------ #
-    def _ensure_connected(self) -> Any:
-        if self._client is not None:
-            transport = self._client.get_transport()
-            if transport is not None and transport.is_active():
-                return self._client
+    def _connect(self) -> object:
+        """Open a fresh SSH connection (mirrors batch_runner.create_ssh)."""
         import paramiko  # lazy import
 
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(
+
+        connect_kwargs: dict = dict(
             hostname=self.host,
             port=self.port,
             username=self.user,
-            password=self.password,
-            key_filename=self.key_filename,
             timeout=self.connect_timeout_s,
             banner_timeout=self.connect_timeout_s,
             auth_timeout=self.connect_timeout_s,
-            allow_agent=True,
-            look_for_keys=True,
         )
-        self._client = client
-        log.info("SSH worker connected", kv={"port": self.port, "host": self.host})
-        return client
+        if self.password:
+            # Password-only auth: skip agent and key-file attempts entirely.
+            connect_kwargs["password"] = self.password
+            connect_kwargs["allow_agent"] = False
+            connect_kwargs["look_for_keys"] = False
+        if self.key_filename:
+            connect_kwargs["key_filename"] = self.key_filename
 
-    def _close(self) -> None:
-        if self._client is not None:
-            try:
-                self._client.close()
-            except Exception:  # noqa: BLE001
-                pass
-            self._client = None
+        client.connect(**connect_kwargs)
+        log.info("SSH connected", kv={"port": self.port, "host": self.host})
+        return client
 
     # ------------------------------------------------------------------ #
     def _handle_task(self, task: SimulationTask) -> TaskResult:
@@ -180,8 +185,6 @@ class SSHWorker(threading.Thread):
                         "error": last_err,
                     },
                 )
-                # Drop the SSH client; force reconnect on next try.
-                self._close()
                 time.sleep(min(2 ** attempts, 10))
         return TaskResult(
             task_id=task.task_id,
@@ -195,63 +198,93 @@ class SSHWorker(threading.Thread):
 
     # ------------------------------------------------------------------ #
     def _run_once(self, task: SimulationTask) -> Path:
-        client = self._ensure_connected()
+        """Execute one simulation task, mirroring batch_runner.run_simulation."""
         # 1) Build local files
         task.local_workdir.mkdir(parents=True, exist_ok=True)
         local_files = task.prepare_local(task.local_workdir)
-        # 2) Ensure remote dir
-        sftp = client.open_sftp()
+
+        # 2) Fresh SSH connection per task (matches batch_runner pattern)
+        client = self._connect()
         try:
-            self._mkdir_p(sftp, task.remote_workdir)
-            # 3) Upload
-            for lf in local_files:
-                remote_path = PurePosixPath(task.remote_workdir) / lf.name
-                sftp.put(str(lf), str(remote_path))
-            # 4) Resolve placeholders
+            # 3) Upload simulation files via SFTP
+            sftp = client.open_sftp()
+            try:
+                self._mkdir_p(sftp, task.remote_workdir)
+                for lf in local_files:
+                    remote_path = str(PurePosixPath(task.remote_workdir) / lf.name)
+                    sftp.put(str(lf), remote_path)
+            finally:
+                try:
+                    sftp.close()
+                except Exception:  # noqa: BLE001
+                    pass
+
+            # 4) Resolve command placeholders
             placeholders = dict(task.placeholders)
-            placeholders.setdefault(
-                "simulation_file",
-                str(PurePosixPath(task.remote_workdir) / "simulation.csc"),
-            )
+            # simulation.csc is uploaded to remote_workdir; use relative name so the
+            # command template's own "cd {remote_cooja_dir}" sets the right CWD.
+            placeholders.setdefault("simulation_file", "simulation.csc")
             placeholders.setdefault("workdir", str(task.remote_workdir))
             command = task.command_template.format(**placeholders)
-            full_cmd = f"cd {task.remote_workdir} && {command}"
+            full_cmd = command  # template already contains the cd to the right directory
             log.info(
                 "Running remote command",
                 kv={"port": self.port, "task_id": task.task_id, "cmd": full_cmd},
             )
-            # 5) Exec
-            stdin, stdout, stderr = client.exec_command(full_cmd, timeout=task.timeout_s)
-            # Drain streams
-            out = stdout.read().decode("utf-8", errors="replace")
-            err = stderr.read().decode("utf-8", errors="replace")
+
+            # 5) Execute with PTY + poll exit status (matches batch_runner)
+            _, stdout, _ = client.exec_command(full_cmd, get_pty=True)
+            deadline = time.monotonic() + task.timeout_s
+            while not stdout.channel.exit_status_ready():
+                if time.monotonic() > deadline:
+                    stdout.channel.close()
+                    raise RuntimeError(
+                        f"remote command timed out after {task.timeout_s}s"
+                    )
+                time.sleep(0.2)
             rc = stdout.channel.recv_exit_status()
-            # 6) Save log locally
+
+            # 6) Download COOJA.testlog (matches batch_runner scp_get)
+            remote_log = str(
+                task.remote_log_path
+                if task.remote_log_path is not None
+                else PurePosixPath(task.remote_workdir) / task.remote_log_filename
+            )
             log_path = task.local_workdir / task.log_filename
-            with log_path.open("w", encoding="utf-8") as fh:
-                fh.write(f"# remote command: {full_cmd}\n# rc={rc}\n\n# STDOUT:\n")
-                fh.write(out)
-                fh.write("\n\n# STDERR:\n")
-                fh.write(err)
+            sftp2 = client.open_sftp()
+            try:
+                sftp2.get(remote_log, str(log_path))
+            except IOError as exc:
+                raise RuntimeError(
+                    f"Failed to download remote log '{remote_log}': {exc}"
+                ) from exc
+            finally:
+                try:
+                    sftp2.close()
+                except Exception:  # noqa: BLE001
+                    pass
+
             if rc != 0:
                 raise RuntimeError(f"remote command exited with code {rc}")
             return log_path
+
         finally:
+            # Always close connection after each task (matches batch_runner)
             try:
-                sftp.close()
+                client.close()
             except Exception:  # noqa: BLE001
                 pass
 
     @staticmethod
-    def _mkdir_p(sftp: Any, path: PurePosixPath) -> None:
+    def _mkdir_p(sftp: object, path: PurePosixPath) -> None:
         parts = [p for p in str(path).split("/") if p]
         cur = "/"
         for part in parts:
-            cur = (cur.rstrip("/") + "/" + part)
+            cur = cur.rstrip("/") + "/" + part
             try:
-                sftp.stat(cur)
+                sftp.stat(cur)  # type: ignore[attr-defined]
             except IOError:
-                sftp.mkdir(cur)
+                sftp.mkdir(cur)  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +343,6 @@ class SSHPool:
         return list(self.results)
 
     def shutdown(self) -> None:
-        # Sentinels
         for _ in self.workers:
             self.queue.put(None)
         for w in self.workers:

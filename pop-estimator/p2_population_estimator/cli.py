@@ -1,187 +1,206 @@
-"""Command-line interface.
+"""Command-line interface — JSON-driven.
 
-Example (surrogate)::
+Usage::
 
-    python -m p2_population_estimator.cli \\
-        --instance ind2.json \\
-        --output-dir results/p2_estimation_run_001 \\
-        --mode surrogate \\
-        --partition-method grid \\
-        --num-blocks 8 \\
-        --num-complements 30 \\
-        --alpha 0.05 \\
-        --rho 0.20 \\
-        --seeds 336157 667370 35239 873465 \\
-        --random-seed 42
+    # Print default config and save it
+    p2-popest --dump-config > my_run.json
 
-Example (cooja)::
+    # Edit my_run.json, then run
+    p2-popest my_run.json
 
-    python -m p2_population_estimator.cli \\
-        --instance ind2.json \\
-        --output-dir results/p2_cooja_run_001 \\
-        --mode cooja \\
-        --ssh-host localhost \\
-        --ssh-user ${USER} \\
-        --ssh-ports 2231 2232 2233 2234 2235 2236 \\
-        --partition-method grid \\
-        --num-blocks 8 \\
-        --num-complements 30 \\
-        --alpha 0.05 \\
-        --rho 0.20 \\
-        --seeds 336157 667370 35239 873465 \\
-        --simulation-timeout 900 \\
-        --random-seed 42
+    # Override output directory and force overwrite from the command line
+    p2-popest my_run.json --output-dir results/run_002 --force
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
-from typing import Optional, Sequence
+from pathlib import Path
+from typing import Any
+
+# Firmware bundled with the package (pop-estimator/firmware/rpl-udp-csma/)
+_BUNDLED_FIRMWARE_DIR = Path(__file__).parent.parent / "firmware" / "rpl-udp-csma"
 
 from p2_population_estimator.experiment import run_experiment
 from p2_population_estimator.logging_utils import configure as configure_logging
 from p2_population_estimator.models import ExperimentConfig, ScalarizationWeights
 
 
+# ---------------------------------------------------------------------------
+# Default configuration (all keys match ExperimentConfig field names)
+# ---------------------------------------------------------------------------
+def _default_config() -> dict[str, Any]:
+    return {
+        # Required — must be set by the user
+        "instance_path": "path/to/instance.json",
+        "output_dir": "results/run_001",
+
+        # Mode: "surrogate" (no external simulator) or "cooja" (SSH to Cooja containers)
+        "mode": "surrogate",
+
+        # Partition / blocks
+        "partition_method": "grid",       # "grid" | "kmeans" | "radial_to_sink"
+        "num_blocks": 8,
+        "hstar_method": "structural_greedy",   # "structural_greedy" | "dense_local" | "external"
+        "hstar_external_path": None,
+        "hlocal_method": "deceptive_low_cost", # "deceptive_low_cost" | "redundant_local" | "far_from_sink" | "random_competitor"
+
+        # Complements
+        "complement_method": "bernoulli",  # "bernoulli" | "feasible_repair" | "population_sample"
+        "num_complements": 30,
+        "rho": 0.2,
+
+        # Statistical
+        "alpha": 0.05,
+        "aggregation_method": "mean_with_std",  # "mean" | "median" | "trimmed_mean" | "mean_with_std"
+
+        # Reproducibility
+        "seeds": [42],
+        "random_seed": 42,
+
+        # Scalarisation weights
+        "weights": {
+            "w_connected": 1.0,
+            "w_relays": 0.05,
+            "w_hops": 0.05,
+            "w_dist": 0.05,
+            "w_redundancy": 0.02,
+            "w_latency": 0.0,
+            "w_energy": 0.0,
+            "w_throughput": 0.0,
+            "required_metrics": ["connected_ratio", "relay_count"],
+        },
+
+        # Cooja / SSH (only used when mode == "cooja")
+        "ssh_host": "localhost",
+        "ssh_user": "root",
+        "ssh_password": "root",
+        "ssh_ports": [2231, 2232, 2233, 2234, 2235, 2236],
+        "remote_workdir": "/tmp/popest",
+        "simulation_timeout": 900,
+        "simulation_duration": 180,
+        "remote_cooja_dir": "/opt/contiki-ng/tools/cooja",
+        "cooja_command_template": (
+            "cd {remote_cooja_dir} && "
+            "/opt/java/openjdk/bin/java --enable-preview "
+            "-Xms4g -Xmx4g "
+            "-jar build/libs/cooja.jar --no-gui {simulation_file}"
+        ),
+        "max_retries": 2,
+        "firmware_local_dir": str(_BUNDLED_FIRMWARE_DIR),
+
+        # Overwrite protection (can also be set via --force flag)
+        "force_overwrite": False,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Build ExperimentConfig from a (possibly partial) dict
+# ---------------------------------------------------------------------------
+def _build_config(raw: dict[str, Any], *, force_overwrite: bool = False) -> ExperimentConfig:
+    defaults = _default_config()
+    merged: dict[str, Any] = {**defaults, **raw}
+
+    w_raw: dict[str, Any] = merged.get("weights", {})
+    w_defaults = defaults["weights"]
+    w_merged = {**w_defaults, **w_raw}
+    weights = ScalarizationWeights(
+        w_connected=float(w_merged["w_connected"]),
+        w_relays=float(w_merged["w_relays"]),
+        w_hops=float(w_merged["w_hops"]),
+        w_dist=float(w_merged["w_dist"]),
+        w_redundancy=float(w_merged["w_redundancy"]),
+        w_latency=float(w_merged["w_latency"]),
+        w_energy=float(w_merged["w_energy"]),
+        w_throughput=float(w_merged["w_throughput"]),
+        required_metrics=tuple(w_merged["required_metrics"]),
+    )
+
+    return ExperimentConfig(
+        instance_path=merged["instance_path"],
+        output_dir=merged["output_dir"],
+        mode=merged["mode"],
+        partition_method=merged["partition_method"],
+        num_blocks=int(merged["num_blocks"]),
+        num_complements=int(merged["num_complements"]),
+        alpha=float(merged["alpha"]),
+        rho=float(merged["rho"]),
+        seeds=[int(s) for s in merged["seeds"]],
+        random_seed=int(merged["random_seed"]),
+        hstar_method=merged["hstar_method"],
+        hlocal_method=merged["hlocal_method"],
+        complement_method=merged["complement_method"],
+        aggregation_method=merged["aggregation_method"],
+        weights=weights,
+        ssh_host=merged["ssh_host"],
+        ssh_user=merged["ssh_user"],
+        ssh_password=merged.get("ssh_password"),
+        ssh_ports=[int(p) for p in merged["ssh_ports"]],
+        remote_workdir=merged["remote_workdir"],
+        simulation_timeout=int(merged["simulation_timeout"]),
+        simulation_duration=int(merged["simulation_duration"]),
+        remote_cooja_dir=merged["remote_cooja_dir"],
+        cooja_command_template=merged["cooja_command_template"],
+        max_retries=int(merged["max_retries"]),
+        hstar_external_path=merged.get("hstar_external_path"),
+        hlocal_external_path=merged.get("hlocal_external_path"),
+        firmware_local_dir=merged.get("firmware_local_dir"),
+        force_overwrite=force_overwrite or bool(merged.get("force_overwrite", False)),
+    )
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="p2-popest",
         description=(
-            "Estimate the NSGA-III population size required for Problem P2 "
-            "using a block-decomposition / gambler-ruin heuristic."
+            "Estimate the NSGA-III population size required for Problem P2. "
+            "All parameters are read from a JSON config file."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  p2-popest --dump-config > my_run.json   # generate default config\n"
+            "  p2-popest my_run.json                   # run experiment\n"
         ),
     )
-
-    p.add_argument("--instance", required=True, help="Path to the P2 instance JSON.")
-    p.add_argument("--output-dir", required=True, help="Where to write outputs.")
     p.add_argument(
-        "--mode",
-        choices=("surrogate", "cooja"),
-        required=True,
-        help="surrogate = no external simulator; cooja = run via SSH.",
+        "config",
+        nargs="?",
+        metavar="CONFIG_JSON",
+        help="Path to JSON config file.",
     )
-
-    # Partition / blocks
     p.add_argument(
-        "--partition-method",
-        choices=("grid", "kmeans", "radial_to_sink"),
-        default="grid",
+        "--dump-config",
+        action="store_true",
+        help="Print the default config JSON to stdout and exit.",
     )
-    p.add_argument("--num-blocks", type=int, default=8)
-    p.add_argument(
-        "--hstar-method",
-        choices=("structural_greedy", "dense_local", "external"),
-        default="structural_greedy",
-    )
-    p.add_argument("--hstar-external-path", default=None)
-    p.add_argument(
-        "--hlocal-method",
-        choices=("deceptive_low_cost", "redundant_local", "far_from_sink", "random_competitor"),
-        default="deceptive_low_cost",
-    )
-
-    # Complements
-    p.add_argument(
-        "--complement-method",
-        choices=("bernoulli", "feasible_repair", "population_sample"),
-        default="bernoulli",
-    )
-    p.add_argument("--num-complements", type=int, default=30)
-    p.add_argument("--rho", type=float, default=0.2)
-
-    # Statistical
-    p.add_argument("--alpha", type=float, default=0.05)
-    p.add_argument(
-        "--aggregation-method",
-        choices=("mean", "median", "trimmed_mean", "mean_with_std"),
-        default="mean_with_std",
-    )
-
-    # Reproducibility
-    p.add_argument("--seeds", type=int, nargs="+", default=[42])
-    p.add_argument("--random-seed", type=int, default=42)
-
-    # Cooja
-    p.add_argument("--ssh-host", default="localhost")
-    p.add_argument("--ssh-user", default="")
-    p.add_argument(
-        "--ssh-ports", type=int, nargs="+", default=[2231, 2232, 2233, 2234, 2235, 2236]
-    )
-    p.add_argument("--remote-workdir", default="/tmp/popest")
-    p.add_argument("--simulation-timeout", type=int, default=900)
-    p.add_argument(
-        "--cooja-command-template",
-        default="java -Xms4g -Xmx4g -jar /opt/cooja/cooja.jar --no-gui {simulation_file}",
-    )
-    p.add_argument("--max-retries", type=int, default=2)
-
-    # Output safety
-    p.add_argument("--force", action="store_true", help="Overwrite existing output.")
-
-    # Scalarisation weights
-    grp = p.add_argument_group("scalarisation weights")
-    grp.add_argument("--w-connected", type=float, default=1.0)
-    grp.add_argument("--w-relays", type=float, default=0.05)
-    grp.add_argument("--w-hops", type=float, default=0.05)
-    grp.add_argument("--w-dist", type=float, default=0.05)
-    grp.add_argument("--w-redundancy", type=float, default=0.02)
-    grp.add_argument("--w-latency", type=float, default=0.0)
-    grp.add_argument("--w-energy", type=float, default=0.0)
-    grp.add_argument("--w-throughput", type=float, default=0.0)
-    grp.add_argument(
-        "--required-metrics",
-        nargs="+",
-        default=["connected_ratio", "relay_count"],
-        help="Metrics that must be present in the aggregated output; "
-        "evaluation fails with a clear error if any is missing.",
-    )
-
     return p
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+
+    if args.dump_config:
+        print(json.dumps(_default_config(), indent=2))
+        return 0
+
+    if not args.config:
+        _build_parser().error("CONFIG_JSON is required (or use --dump-config to see defaults)")
+
+    config_path = Path(args.config)
+    if not config_path.exists():
+        print(f"error: config file not found: {config_path}", file=sys.stderr)
+        return 1
+
+    raw: dict[str, Any] = json.loads(config_path.read_text(encoding="utf-8"))
+
     configure_logging()
-
-    weights = ScalarizationWeights(
-        w_connected=args.w_connected,
-        w_relays=args.w_relays,
-        w_hops=args.w_hops,
-        w_dist=args.w_dist,
-        w_redundancy=args.w_redundancy,
-        w_latency=args.w_latency,
-        w_energy=args.w_energy,
-        w_throughput=args.w_throughput,
-        required_metrics=tuple(args.required_metrics),
-    )
-
-    cfg = ExperimentConfig(
-        instance_path=args.instance,
-        output_dir=args.output_dir,
-        mode=args.mode,
-        partition_method=args.partition_method,
-        num_blocks=args.num_blocks,
-        num_complements=args.num_complements,
-        alpha=args.alpha,
-        rho=args.rho,
-        seeds=list(args.seeds),
-        random_seed=args.random_seed,
-        hstar_method=args.hstar_method,
-        hlocal_method=args.hlocal_method,
-        complement_method=args.complement_method,
-        aggregation_method=args.aggregation_method,
-        weights=weights,
-        ssh_host=args.ssh_host,
-        ssh_user=args.ssh_user,
-        ssh_ports=list(args.ssh_ports),
-        remote_workdir=args.remote_workdir,
-        simulation_timeout=args.simulation_timeout,
-        cooja_command_template=args.cooja_command_template,
-        max_retries=args.max_retries,
-        hstar_external_path=args.hstar_external_path,
-        force_overwrite=args.force,
-    )
+    cfg = _build_config(raw)
 
     result = run_experiment(cfg)
     g = result.global_estimate
@@ -193,8 +212,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         f"invalid_blocks  = {g.get('num_invalid_blocks')}\n"
         f"most_difficult  = block {g.get('most_difficult_block_id')}\n"
         f"\nOutputs:\n"
-        f"  {args.output_dir}/population_estimate_result.json\n"
-        f"  {args.output_dir}/block_results.csv\n",
+        f"  {cfg.output_dir}/population_estimate_result.json\n"
+        f"  {cfg.output_dir}/block_results.csv\n",
         file=sys.stdout,
     )
     return 0

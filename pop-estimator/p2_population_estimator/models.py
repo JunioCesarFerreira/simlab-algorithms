@@ -291,15 +291,23 @@ class ExperimentConfig:
     # Cooja-specific
     ssh_host: str = "localhost"
     ssh_user: str = ""
+    ssh_password: Optional[str] = None
     ssh_ports: list[int] = field(default_factory=lambda: [2231, 2232, 2233, 2234, 2235, 2236])
     remote_workdir: str = "/tmp/popest"
     simulation_timeout: int = 900
+    simulation_duration: int = 180
+    remote_cooja_dir: str = "/opt/contiki-ng/tools/cooja"
     cooja_command_template: str = (
-        "java -Xms4g -Xmx4g -jar /opt/cooja/cooja.jar --no-gui {simulation_file}"
+        "cd {remote_cooja_dir} && "
+        "/opt/java/openjdk/bin/java --enable-preview "
+        "-Xms4g -Xmx4g "
+        "-jar build/libs/cooja.jar --no-gui {simulation_file}"
     )
     max_retries: int = 2
     # External H_star / H_local files (optional)
     hstar_external_path: Optional[str] = None
     hlocal_external_path: Optional[str] = None
+    # Firmware directory to upload alongside simulation files (cooja mode)
+    firmware_local_dir: Optional[str] = None
     # Overwrite protection
     force_overwrite: bool = False

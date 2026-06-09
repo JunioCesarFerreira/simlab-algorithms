@@ -1,0 +1,45 @@
+{
+  "instance_path": "examples/simple.json",
+  "output_dir": "results/p2_cooja_run_simple_1",
+  "mode": "cooja",
+
+  "partition_method": "grid",
+  "num_blocks": 4,
+  "hstar_method": "structural_greedy",
+  "hlocal_method": "deceptive_low_cost",
+
+  "complement_method": "bernoulli",
+  "num_complements": 30,
+  "rho": 0.2,
+
+  "alpha": 0.05,
+  "aggregation_method": "mean_with_std",
+
+  "seeds": [336157, 667370, 35239, 873465],
+  "random_seed": 42,
+
+  "weights": {
+    "w_connected": 0.0,
+    "w_relays": 0.0,
+    "w_hops": 0.0,
+    "w_dist": 0.0,
+    "w_redundancy": 0.0,
+    "w_latency": 0.5,
+    "w_energy": 0.1,
+    "w_throughput": 1.0,
+    "required_metrics": ["throughput"]
+  },
+
+  "ssh_host": "localhost",
+  "ssh_user": "root",
+  "ssh_password": "root",
+  "ssh_ports": [2231, 2232, 2233, 2234, 2235, 2236],
+
+  "remote_workdir": "/tmp/popest",
+  "simulation_timeout": 900,
+  "simulation_duration": 180,
+  "remote_cooja_dir": "/opt/contiki-ng/tools/cooja",
+  "max_retries": 2,
+
+  "force_overwrite": true
+}

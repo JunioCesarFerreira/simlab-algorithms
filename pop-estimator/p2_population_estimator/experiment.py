@@ -182,6 +182,7 @@ def _build_evaluator(cfg: ExperimentConfig, instance: P2Instance) -> BaseEvaluat
             user=cfg.ssh_user,
             ports=cfg.ssh_ports,
             max_retries=cfg.max_retries,
+            password=cfg.ssh_password,
         )
         pool.start()
         return CoojaEvaluator(
@@ -193,6 +194,8 @@ def _build_evaluator(cfg: ExperimentConfig, instance: P2Instance) -> BaseEvaluat
             command_template=cfg.cooja_command_template,
             aggregation_method=cfg.aggregation_method,
             simulation_timeout=cfg.simulation_timeout,
+            simulation_duration_s=cfg.simulation_duration,
+            remote_cooja_dir=cfg.remote_cooja_dir,
         )
     raise ValueError(f"Unknown mode: {cfg.mode!r}")
 

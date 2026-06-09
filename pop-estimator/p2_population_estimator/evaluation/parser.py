@@ -1,94 +1,86 @@
 """Parse Cooja log output into :class:`SimulationMetrics`.
 
-The exact log format depends on the Contiki-NG application running inside
-Cooja. This module is intentionally small and well-tested so that adapting
-it to a different output format is a localised change.
+Matches the firmware output format from ``root.c``:
+  - Lines captured by the ScriptRunner script look like:
+      [Mote:1] {"node":"ip", "rtt_latency":X, "total_energy_mj":X, "server_received":X, ...}
+  - One JSON object per packet received by the root (mote 1).
+  - Aggregation mirrors ``wsn-design-space-exploration/batch_runner/lib/csv_converter.py``.
 
-We support two parsing flavours out of the box:
-
-1. ``parse_keyvalue_log`` — picks up lines like ``KEY=VALUE`` (case-insensitive
-   key match), tolerating prefixes / log timestamps.
-2. ``parse_summary_json``  — looks for a single JSON object preceded by the
-   marker ``__POPEST_RESULT__`` (a convention you can emit from your
-   firmware/simulation glue).
-
-If both are present, ``parse_summary_json`` wins because it is the explicit
-contract.
+Derived metrics:
+  latency    <- mean of ``rtt_latency`` across all records
+  energy     <- sum of last ``total_energy_mj`` per node (total energy at end of sim)
+  throughput <- sum of (last - first) ``server_received`` per node (packets delivered)
+  relay_count <- number of unique nodes that responded
 """
 
 from __future__ import annotations
 
 import json
 import re
-from typing import Iterable, Optional
+from collections import defaultdict
+from typing import Iterable
 
 from p2_population_estimator.models import SimulationMetrics
 
-_KV_RE = re.compile(r"(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*(?P<val>-?\d+(?:\.\d+)?)")
-_MARKER = "__POPEST_RESULT__"
+# Matches [Mote:1] lines that contain a JSON object (flat, no nested braces).
+_MOTE1_RE = re.compile(r'\[Mote:1\].*?(\{[^{}]+\})')
 
 
-_KNOWN_FIELDS = {
-    "latency",
-    "energy",
-    "throughput",
-    "packet_delivery_ratio",
-    "connected_ratio",
-    "relay_count",
-    "mean_hop_count",
-    "mean_distance_to_mobile",
-    "redundancy",
-}
-
-
-def parse_summary_json(text: str) -> Optional[SimulationMetrics]:
-    """Look for ``__POPEST_RESULT__ {...json...}`` and parse it."""
-    idx = text.find(_MARKER)
-    if idx < 0:
-        return None
-    rest = text[idx + len(_MARKER):]
-    # find first '{' and try to parse JSON greedily until balanced
-    start = rest.find("{")
-    if start < 0:
-        return None
-    depth = 0
-    end = -1
-    for i, ch in enumerate(rest[start:], start=start):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                end = i + 1
-                break
-    if end < 0:
-        return None
-    try:
-        payload = json.loads(rest[start:end])
-    except json.JSONDecodeError:
-        return None
-    return _from_dict(payload)
-
-
-def parse_keyvalue_log(text: str) -> SimulationMetrics:
-    """Collect last numeric occurrence of each known key."""
-    collected: dict[str, float] = {}
-    for m in _KV_RE.finditer(text):
-        key = m.group("key").lower()
-        if key in _KNOWN_FIELDS:
-            try:
-                collected[key] = float(m.group("val"))
-            except ValueError:
-                continue
-    return _from_dict(collected)
+def _parse_records(text: str) -> list[dict]:
+    records = []
+    for line in text.splitlines():
+        m = _MOTE1_RE.search(line)
+        if not m:
+            continue
+        try:
+            rec = json.loads(m.group(1))
+            if "node" in rec:
+                records.append(rec)
+        except json.JSONDecodeError:
+            continue
+    return records
 
 
 def parse_cooja_log(text: str) -> SimulationMetrics:
-    """Convenience: try summary JSON first, then KV parsing."""
-    js = parse_summary_json(text)
-    if js is not None:
-        return js
-    return parse_keyvalue_log(text)
+    """Parse COOJA.testlog content and return aggregated SimulationMetrics."""
+    records = _parse_records(text)
+
+    if not records:
+        return SimulationMetrics()
+
+    # Group by node identifier
+    by_node: dict[str, list[dict]] = defaultdict(list)
+    for r in records:
+        by_node[str(r["node"])].append(r)
+
+    # latency: mean rtt_latency across all records
+    latency_vals = [float(r["rtt_latency"]) for r in records if "rtt_latency" in r]
+    latency = sum(latency_vals) / len(latency_vals) if latency_vals else None
+
+    # energy: sum of the LAST total_energy_mj reading per node
+    energy = 0.0
+    for node_records in by_node.values():
+        sorted_recs = sorted(node_records, key=lambda r: r.get("root_time_now", 0))
+        energy += float(sorted_recs[-1].get("total_energy_mj", 0))
+    energy_val: float | None = energy if energy > 0 else None
+
+    # throughput: sum of (last - first) server_received per node
+    throughput = 0.0
+    for node_records in by_node.values():
+        sorted_recs = sorted(node_records, key=lambda r: r.get("root_time_now", 0))
+        first = float(sorted_recs[0].get("server_received", 0))
+        last = float(sorted_recs[-1].get("server_received", 0))
+        throughput += max(0.0, last - first)
+
+    # relay_count: number of unique nodes that responded
+    relay_count = len(by_node)
+
+    return SimulationMetrics(
+        latency=latency,
+        energy=energy_val,
+        throughput=throughput,
+        relay_count=relay_count,
+    )
 
 
 def parse_log_files(paths: Iterable[str]) -> SimulationMetrics:
@@ -97,41 +89,3 @@ def parse_log_files(paths: Iterable[str]) -> SimulationMetrics:
         with open(p, "r", encoding="utf-8", errors="replace") as fh:
             chunks.append(fh.read())
     return parse_cooja_log("\n".join(chunks))
-
-
-def _from_dict(d: dict[str, object]) -> SimulationMetrics:
-    def _f(key: str) -> Optional[float]:
-        v = d.get(key)
-        if v is None:
-            return None
-        try:
-            return float(v)  # type: ignore[arg-type]
-        except (TypeError, ValueError):
-            return None
-
-    def _i(key: str) -> Optional[int]:
-        v = d.get(key)
-        if v is None:
-            return None
-        try:
-            return int(float(v))  # type: ignore[arg-type]
-        except (TypeError, ValueError):
-            return None
-
-    extras = {
-        k: float(v)  # type: ignore[arg-type]
-        for k, v in d.items()
-        if k not in _KNOWN_FIELDS and isinstance(v, (int, float))
-    }
-    return SimulationMetrics(
-        latency=_f("latency"),
-        energy=_f("energy"),
-        throughput=_f("throughput"),
-        packet_delivery_ratio=_f("packet_delivery_ratio"),
-        connected_ratio=_f("connected_ratio"),
-        relay_count=_i("relay_count"),
-        mean_hop_count=_f("mean_hop_count"),
-        mean_distance_to_mobile=_f("mean_distance_to_mobile"),
-        redundancy=_f("redundancy"),
-        extras=extras,
-    )
