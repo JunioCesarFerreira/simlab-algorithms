@@ -232,17 +232,42 @@ class SSHWorker(threading.Thread):
                 kv={"port": self.port, "task_id": task.task_id, "cmd": full_cmd},
             )
 
-            # 5) Execute with PTY + poll exit status (matches batch_runner)
+            # 5) Execute with PTY, draining the channel while polling exit status.
+            #    Draining is essential: Cooja recompiles the firmware on every run
+            #    and that produces a lot of output. If the SSH window fills and we
+            #    don't read it, the remote process blocks on write and the whole
+            #    simulation hangs. (mirrors simlab master-node.run_cooja_simulation)
             _, stdout, _ = client.exec_command(full_cmd, get_pty=True)
+            chan = stdout.channel
+            chan.settimeout(1.0)
             deadline = time.monotonic() + task.timeout_s
-            while not stdout.channel.exit_status_ready():
+            tail = ""  # bounded buffer of recent output for error diagnostics
+            while not chan.exit_status_ready():
                 if time.monotonic() > deadline:
-                    stdout.channel.close()
+                    chan.close()
                     raise RuntimeError(
                         f"remote command timed out after {task.timeout_s}s"
                     )
-                time.sleep(0.2)
-            rc = stdout.channel.recv_exit_status()
+                drained = False
+                if chan.recv_ready():
+                    data = chan.recv(8192)
+                    if data:
+                        tail = (tail + data.decode("utf-8", errors="ignore"))[-16384:]
+                        drained = True
+                if chan.recv_stderr_ready():
+                    data = chan.recv_stderr(8192)
+                    if data:
+                        tail = (tail + data.decode("utf-8", errors="ignore"))[-16384:]
+                        drained = True
+                if not drained:
+                    time.sleep(0.2)
+            # Drain whatever is still buffered after the process exited.
+            while chan.recv_ready():
+                data = chan.recv(8192)
+                if not data:
+                    break
+                tail = (tail + data.decode("utf-8", errors="ignore"))[-16384:]
+            rc = chan.recv_exit_status()
 
             # 6) Download COOJA.testlog (matches batch_runner scp_get)
             remote_log = str(
@@ -265,7 +290,10 @@ class SSHWorker(threading.Thread):
                     pass
 
             if rc != 0:
-                raise RuntimeError(f"remote command exited with code {rc}")
+                raise RuntimeError(
+                    f"remote command exited with code {rc}; "
+                    f"last output:\n{tail[-2000:]}"
+                )
             return log_path
 
         finally:

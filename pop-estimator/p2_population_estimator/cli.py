@@ -85,7 +85,7 @@ def _default_config() -> dict[str, Any]:
         "cooja_command_template": (
             "cd {remote_cooja_dir} && "
             "/opt/java/openjdk/bin/java --enable-preview "
-            "-Xms4g -Xmx4g "
+            "-Xms1g -Xmx2g "
             "-jar build/libs/cooja.jar --no-gui {simulation_file}"
         ),
         "max_retries": 2,

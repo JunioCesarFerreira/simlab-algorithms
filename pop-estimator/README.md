@@ -140,16 +140,29 @@ want to override from the defaults.
 
 ## 4. Running
 
+The CLI takes a single positional argument — the JSON config path. Everything
+else (output dir, force overwrite, weights, SSH credentials, …) lives in the
+config file.
+
 ```bash
-# Surrogate (no Cooja — fast validation)
-p2-popest surrogate_run.json
+# 1. Generate the default config
+p2-popest --dump-config > my_run.json
 
-# Cooja mode
-p2-popest cooja_run.json
+# 2. Edit my_run.json (set instance_path, output_dir, mode, etc.)
 
-# Override output directory without editing the file
-p2-popest cooja_run.json --output-dir results/run_002 --force
+# 3. Run
+p2-popest my_run.json
 ```
+
+Two ready-to-use examples ship with the repo:
+
+```bash
+p2-popest run_surrogate.json   # surrogate mode (no Cooja, fast)
+p2-popest run_cooja.json       # Cooja mode (SSH to containers on 2231..2236)
+```
+
+To re-run with a different output directory, edit `output_dir` in the JSON
+(or copy the file). To overwrite an existing output, set `"force_overwrite": true`.
 
 ### Surrogate example config
 

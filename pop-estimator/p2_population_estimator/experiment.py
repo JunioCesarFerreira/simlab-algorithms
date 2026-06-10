@@ -185,6 +185,11 @@ def _build_evaluator(cfg: ExperimentConfig, instance: P2Instance) -> BaseEvaluat
             password=cfg.ssh_password,
         )
         pool.start()
+        firmware_dir = Path(cfg.firmware_local_dir) if cfg.firmware_local_dir else None
+        if firmware_dir is not None and not firmware_dir.is_dir():
+            raise ValueError(
+                f"firmware_local_dir {firmware_dir!r} does not exist or is not a directory"
+            )
         return CoojaEvaluator(
             problem=instance.problem,
             weights=cfg.weights,
@@ -196,6 +201,7 @@ def _build_evaluator(cfg: ExperimentConfig, instance: P2Instance) -> BaseEvaluat
             simulation_timeout=cfg.simulation_timeout,
             simulation_duration_s=cfg.simulation_duration,
             remote_cooja_dir=cfg.remote_cooja_dir,
+            firmware_dir=firmware_dir,
         )
     raise ValueError(f"Unknown mode: {cfg.mode!r}")
 

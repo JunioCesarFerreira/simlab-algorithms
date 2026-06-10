@@ -300,7 +300,7 @@ class ExperimentConfig:
     cooja_command_template: str = (
         "cd {remote_cooja_dir} && "
         "/opt/java/openjdk/bin/java --enable-preview "
-        "-Xms4g -Xmx4g "
+        "-Xms1g -Xmx2g "
         "-jar build/libs/cooja.jar --no-gui {simulation_file}"
     )
     max_retries: int = 2

@@ -1,0 +1,52 @@
+{
+  "instance_path": "path/to/instance.json",
+  "output_dir": "results/run_001",
+  "mode": "surrogate",
+  "partition_method": "grid",
+  "num_blocks": 8,
+  "hstar_method": "structural_greedy",
+  "hstar_external_path": null,
+  "hlocal_method": "deceptive_low_cost",
+  "complement_method": "bernoulli",
+  "num_complements": 30,
+  "rho": 0.2,
+  "alpha": 0.05,
+  "aggregation_method": "mean_with_std",
+  "seeds": [
+    42
+  ],
+  "random_seed": 42,
+  "weights": {
+    "w_connected": 1.0,
+    "w_relays": 0.05,
+    "w_hops": 0.05,
+    "w_dist": 0.05,
+    "w_redundancy": 0.02,
+    "w_latency": 0.0,
+    "w_energy": 0.0,
+    "w_throughput": 0.0,
+    "required_metrics": [
+      "connected_ratio",
+      "relay_count"
+    ]
+  },
+  "ssh_host": "localhost",
+  "ssh_user": "root",
+  "ssh_password": "root",
+  "ssh_ports": [
+    2231,
+    2232,
+    2233,
+    2234,
+    2235,
+    2236
+  ],
+  "remote_workdir": "/tmp/popest",
+  "simulation_timeout": 900,
+  "simulation_duration": 180,
+  "remote_cooja_dir": "/opt/contiki-ng/tools/cooja",
+  "cooja_command_template": "cd {remote_cooja_dir} && /opt/java/openjdk/bin/java --enable-preview -Xms1g -Xmx2g -jar build/libs/cooja.jar --no-gui {simulation_file}",
+  "max_retries": 2,
+  "firmware_local_dir": "/home/junio/github/simlab-algorithms/pop-estimator/firmware/rpl-udp-csma",
+  "force_overwrite": false
+}

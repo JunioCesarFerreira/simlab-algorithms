@@ -18,6 +18,7 @@ class can be imported in tests without paramiko.
 
 from __future__ import annotations
 
+import shutil
 import time
 from pathlib import Path, PurePosixPath
 from typing import Callable, Optional
@@ -89,6 +90,7 @@ class CoojaEvaluator(BaseEvaluator):
         simulation_timeout: int = 900,
         simulation_duration_s: int = 180,
         remote_cooja_dir: str = "/opt/contiki-ng/tools/cooja",
+        firmware_dir: Optional[Path] = None,
         file_generator: Optional[FileGenerator] = None,
     ):
         self.problem = problem
@@ -104,6 +106,7 @@ class CoojaEvaluator(BaseEvaluator):
         self.file_generator = file_generator or make_cooja_file_generator(
             simulation_duration_s=simulation_duration_s,
             remote_cooja_dir=remote_cooja_dir,
+            firmware_dir=firmware_dir,
         )
 
     # ------------------------------------------------------------------ #
@@ -201,21 +204,31 @@ class CoojaEvaluator(BaseEvaluator):
 
 
 # ---------------------------------------------------------------------------
-# Real file generator (mirrors wsn-dse batch_runner logic)
+# Real file generator (mirrors simlab cooja_builder + master-node)
 # ---------------------------------------------------------------------------
+
+_FIRMWARE_FILES = ("root.c", "node.c", "Makefile", "metrics-packet.h", "project-conf.h")
+
 
 def make_cooja_file_generator(
     *,
     simulation_duration_s: int = 180,
     remote_cooja_dir: str = "/opt/contiki-ng/tools/cooja",
+    firmware_dir: Optional[Path] = None,
 ) -> FileGenerator:
-    """Return a FileGenerator that produces ``simulation.csc`` and ``positions.dat``.
+    """Return a FileGenerator producing the files uploaded for each simulation.
 
-    Mirrors the batch_runner pipeline exactly:
-    * Files are uploaded to ``remote_cooja_dir`` (the Cooja installation dir).
-    * Firmware (``root.c``, ``node.c``) is expected to be pre-installed there
-      via ``update_firmware.py`` — NOT uploaded per simulation.
-    * ``positions.dat`` is uploaded only when mobile nodes are present.
+    Mirrors the simlab pipeline (``master-node.prepare_simulation_files``):
+    every simulation uploads ``simulation.csc``, ``positions.dat`` (when mobile
+    nodes exist) and the firmware source files to ``remote_cooja_dir``.
+
+    Firmware is uploaded *into* ``remote_cooja_dir`` so that:
+    * the CSC ``<source>`` can reference ``{remote_cooja_dir}/root.c``;
+    * the Makefile's relative ``CONTIKI=../..`` resolves to ``/opt/contiki-ng``;
+    * Cooja recompiles fresh firmware on every run.
+
+    When ``firmware_dir`` is None, firmware is assumed already present on the
+    container and only the CSC/positions are uploaded.
     """
 
     def _generate(
@@ -226,6 +239,18 @@ def make_cooja_file_generator(
         _remote_wd: PurePosixPath,  # files go to remote_workdir (= remote_cooja_dir)
     ) -> list[Path]:
         files: list[Path] = []
+
+        # Firmware source files — copied into workdir so the SSH pool uploads
+        # them to remote_cooja_dir alongside simulation.csc.
+        if firmware_dir is not None:
+            for fname in _FIRMWARE_FILES:
+                src = firmware_dir / fname
+                if src.exists():
+                    dst = workdir / fname
+                    shutil.copy2(src, dst)
+                    files.append(dst)
+                else:
+                    log.warning("Firmware file not found", kv={"path": str(src)})
 
         # Topology: sink (server, mote 1) + selected relays (clients, motes 2..R)
         selected_indices = [j for j, b in enumerate(solution.bits) if b]
@@ -355,19 +380,23 @@ def _write_simulation_csc(
       - Motes 2..R+1: selected relay candidates (``node.c``)
       - Motes R+2..R+M+1: mobile nodes at their trajectory start positions
 
-    Timeout note (matches batch_runner replace_xml.py):
-      ``time`` in Cooja JS is in **milliseconds**; ``TIMEOUT`` also in ms.
-      ``timeOut = simulation_duration_s * 1000`` ms drives the while loop.
-      ``TIMEOUT(timeOut + 11000)`` gives 11 s of tolerance for the last YIELD.
+    Timeout note (matches simlab replace_xml.py):
+      Cooja JS ``time`` is in **microseconds** — the while loop compares
+      against it, so ``timeOut`` must also be microseconds.
+      ``TIMEOUT()`` takes **milliseconds**.
+      simlab does ``new_timeout_ms = minutes * 60000`` then
+      ``timeOut = new_timeout_ms * 1000`` (us) and ``TIMEOUT(new_timeout_ms + 11000)``.
+      Equivalent here: ``timeOut = duration_s * 1_000_000`` us,
+      ``TIMEOUT(duration_s * 1000 + 11000)`` ms (11 s tolerance for last YIELD).
     """
-    timeout_ms = simulation_duration_s * 1000       # ms of simulated time
-    timeout_tol_ms = timeout_ms + 11000             # hard cap (ms), 11 s buffer
+    timeout_us = simulation_duration_s * 1_000_000        # while-loop bound (us)
+    timeout_hard_ms = simulation_duration_s * 1000 + 11000  # TIMEOUT() arg (ms)
 
     script = (
         f"        log.log(\"Initializing simulation script\\n\");\n"
         f"        var initTime = time;\n"
-        f"        const timeOut = {timeout_ms};\n"
-        f"        TIMEOUT({timeout_tol_ms});\n"
+        f"        const timeOut = {timeout_us};\n"
+        f"        TIMEOUT({timeout_hard_ms});\n"
         f"        sim.startSimulation();\n"
         f"        while (time < initTime + timeOut) {{\n"
         f"          YIELD();\n"

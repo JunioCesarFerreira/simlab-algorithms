@@ -1,0 +1,5 @@
+block_id,k_i,s_i_star,alpha,pi_i_star,d_i_hat,sigma_BB_i_hat,n_i_uniform,n_i_uniform_ceil,n_i_bernoulli,n_i_bernoulli_ceil,status
+0,6,3,0.05,0.0040960000000000015,0.028897628186521522,0.036773801805278776,345.0438588689709,346,1316.2378649481614,1317,ok
+1,1,1,0.05,0.2,0.0,0.0,,,,,invalid_non_positive_d
+2,2,1,0.05,0.16000000000000003,0.0,0.0,,,,,invalid_non_positive_d
+3,1,1,0.05,0.2,0.0,0.0,,,,,invalid_non_positive_d
