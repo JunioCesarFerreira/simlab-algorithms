@@ -1,0 +1,335 @@
+{
+  "simulationModel": {
+    "duration": 180,
+    "radiusOfReach": 50.0,
+    "radiusOfInter": 100.0,
+    "region": [
+      -150,
+      -150,
+      150,
+      150
+    ],
+    "simulationElements": {
+      "fixedMotes": [
+        {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "name": "root",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -17.0,
+            -27.0
+          ],
+          "name": "node1",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -41.0,
+            -8.0
+          ],
+          "name": "node2",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -41.0,
+            49.0
+          ],
+          "name": "node3",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -71.0,
+            68.0
+          ],
+          "name": "node4",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -42.0,
+            21.0
+          ],
+          "name": "node5",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            15.0,
+            38.0
+          ],
+          "name": "node6",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            51.0,
+            15.0
+          ],
+          "name": "node7",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            27.0,
+            -37.0
+          ],
+          "name": "node8",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -23.0,
+            -61.0
+          ],
+          "name": "node9",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            7.0,
+            -61.0
+          ],
+          "name": "node10",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            54.0,
+            -62.0
+          ],
+          "name": "node11",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -61.0,
+            -82.0
+          ],
+          "name": "node12",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -91.0,
+            -91.0
+          ],
+          "name": "node13",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            91.0,
+            -123.0
+          ],
+          "name": "node14",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            40.0,
+            -115.0
+          ],
+          "name": "node15",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            68.0,
+            -100.0
+          ],
+          "name": "node16",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            95.0,
+            109.0
+          ],
+          "name": "node17",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            45.0,
+            122.0
+          ],
+          "name": "node18",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            62.0,
+            95.0
+          ],
+          "name": "node19",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            47.0,
+            45.0
+          ],
+          "name": "node20",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            30.0,
+            77.0
+          ],
+          "name": "node21",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -8.0,
+            49.0
+          ],
+          "name": "node22",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -23.0,
+            89.0
+          ],
+          "name": "node23",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -67.0,
+            93.0
+          ],
+          "name": "node24",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -92.0,
+            -58.0
+          ],
+          "name": "node25",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -91.0,
+            -18.0
+          ],
+          "name": "node26",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -91.0,
+            27.0
+          ],
+          "name": "node27",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            3.0,
+            -123.0
+          ],
+          "name": "node28",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            29.0,
+            -89.0
+          ],
+          "name": "node29",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            100.0,
+            -58.0
+          ],
+          "name": "node30",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            101.0,
+            -18.0
+          ],
+          "name": "node31",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            99.0,
+            21.0
+          ],
+          "name": "node32",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            68.0,
+            69.0
+          ],
+          "name": "node33",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            -61.0,
+            -112.0
+          ],
+          "name": "node34",
+          "sourceCode": "node.c"
+        },
+        {
+          "position": [
+            41.0,
+            -21.0
+          ],
+          "name": "node35",
+          "sourceCode": "node.c"
+        }
+      ],
+      "mobileMotes": [
+        {
+          "name": "node1"
+        },
+        {
+          "name": "node2"
+        },
+        {
+          "name": "node3"
+        },
+        {
+          "name": "node4"
+        }
+      ]
+    }
+  },
+  "milpParameters": {
+    "C0": 110.0,
+    "k_decay": 0.5,
+    "B": 50.0,
+    "w_install": 1000000.0
+  },
+  "milpSolve": {
+    "status": 2,
+    "status_name": "OPTIMAL",
+    "objective_value": 52868862.7776353,
+    "runtime_seconds": 60.3,
+    "mip_gap": null,
+    "installed_nodes": 35,
+    "variables": 12440,
+    "constraints": 18756
+  }
+}
