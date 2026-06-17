@@ -1,0 +1,59 @@
+{
+  "method": "M1",
+  "instance": "ind2",
+  "n_hat": 22,
+  "n_hat_raw": 21.636662812017885,
+  "ci_low": 15.098490658712116,
+  "ci_high": 73.12388405831491,
+  "sigma": 14.802396275408878,
+  "params": {
+    "view": "diminishing returns of converged GA fitness vs population size",
+    "eps_rel": 0.05,
+    "fit_model": "F*(n) = F_inf - A*exp(-n/tau)",
+    "F_inf": 0.9696394593473755,
+    "A": 0.012653058766428296,
+    "tau": 7.222495482331338,
+    "rss": 1.6344235989934416e-06,
+    "pop_sizes": [
+      4.0,
+      8.0,
+      16.0,
+      32.0,
+      64.0,
+      128.0,
+      256.0
+    ],
+    "mean_F_per_size": [
+      0.962095,
+      0.9661186,
+      0.9677808000000001,
+      0.9687256,
+      0.9697039999999999,
+      0.9700194,
+      0.9700476
+    ],
+    "std_F_per_size": [
+      0.004995054073781392,
+      0.0008702681425859445,
+      0.0010932080131429611,
+      0.0006615713415800216,
+      0.0005730095985234483,
+      0.00028250918569136405,
+      0.00028298452254497806
+    ],
+    "information_gain": {
+      "n_distinct": 16553,
+      "tau_info": 330.4600000000001,
+      "j95_individuals": 989.9696871186521,
+      "mean_inter_sample_hamming": 29.507253626813405,
+      "n_bits": 64
+    },
+    "gambler_ruin_baseline": {
+      "available": true,
+      "n_hat_uniform": 2839,
+      "n_hat_bernoulli": 2839,
+      "note": "worst-case gambler-ruin bound; conservative relative to N_hat_1"
+    },
+    "n_hat_raw": 21.636662812017885
+  }
+}

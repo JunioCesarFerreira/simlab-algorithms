@@ -1,0 +1,15 @@
+# Python dependencies for the four-method population-estimation pipeline,
+# the genetic algorithm, and the paper figures/tables.
+# Pinned to the versions used to produce the results in results/ and paper/.
+#
+# The in-tree packages (p2_population_estimator under pop-estimator/,
+# adjacency_builder.py, path_builder.py) are imported via sys.path by
+# methods/common.py and need only NumPy at runtime.
+
+numpy==2.4.4
+matplotlib==3.11.0
+
+# Only needed to (re)run the MILP sweep in experiments/p2-milp-sweep/.
+# Method 4 consumes the sweep's saved milp_run_summary.json and does not import
+# pulp itself, so this is optional unless you regenerate the MILP results.
+pulp==3.3.2

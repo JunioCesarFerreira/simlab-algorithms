@@ -1,0 +1,70 @@
+{
+  "method": "M3",
+  "instance": "ind2",
+  "n_hat": 14,
+  "n_hat_raw": 13.087938901040584,
+  "ci_low": 6.0,
+  "ci_high": 27.0,
+  "sigma": 7.467708260682569,
+  "params": {
+    "view": "operational routing usage (shortest paths)",
+    "alpha": 0.05,
+    "N": 64,
+    "T": 181,
+    "M": 4,
+    "TM": 724,
+    "k_bar": 8.0,
+    "n_blocks": 8,
+    "phi": 0.05,
+    "R_phi": 9,
+    "estimator": "N_hat_3 = |R_phi| * (1/alpha)^(1/k_bar)",
+    "route_stats": {
+      "max": 0.44613259668508287,
+      "mean": 0.03671011740331492,
+      "n_used": 34
+    },
+    "convergence": {
+      "t_star": 156,
+      "T": 181,
+      "conv_fraction": 0.861878453038674,
+      "R_phi_final": 9
+    },
+    "connectivity": {
+      "full_connectivity_pct": 100.0,
+      "mean_active": 4.0
+    },
+    "phi_sweep": [
+      {
+        "phi": 0.02,
+        "R_phi": 18,
+        "n_hat": 27
+      },
+      {
+        "phi": 0.05,
+        "R_phi": 9,
+        "n_hat": 14
+      },
+      {
+        "phi": 0.075,
+        "R_phi": 8,
+        "n_hat": 12
+      },
+      {
+        "phi": 0.1,
+        "R_phi": 6,
+        "n_hat": 9
+      },
+      {
+        "phi": 0.15,
+        "R_phi": 6,
+        "n_hat": 9
+      },
+      {
+        "phi": 0.2,
+        "R_phi": 4,
+        "n_hat": 6
+      }
+    ],
+    "n_hat_raw": 13.087938901040584
+  }
+}

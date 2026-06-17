@@ -1,0 +1,77 @@
+{
+  "instance": "ind2",
+  "methods": [
+    {
+      "method": "M1",
+      "label": "M1 inference (diminishing returns)",
+      "n_hat": 22.0,
+      "n_hat_raw": 21.636662812017885,
+      "ci_low": 15.098490658712116,
+      "ci_high": 73.12388405831491,
+      "sigma": 14.802396275408878,
+      "weight": 0.12372280940495034
+    },
+    {
+      "method": "M2",
+      "label": "M2 adjacency coverage",
+      "n_hat": 24.0,
+      "n_hat_raw": 23.26744693518326,
+      "ci_low": 9.0,
+      "ci_high": 53.0,
+      "sigma": 14.552204873030984,
+      "weight": 0.12801363376685365
+    },
+    {
+      "method": "M3",
+      "label": "M3 routing criticality",
+      "n_hat": 14.0,
+      "n_hat_raw": 13.087938901040584,
+      "ci_low": 6.0,
+      "ci_high": 27.0,
+      "sigma": 7.467708260682569,
+      "weight": 0.486115131692063
+    },
+    {
+      "method": "M4",
+      "label": "M4 MILP calibration",
+      "n_hat": 48.0,
+      "n_hat_raw": 47.27480546535737,
+      "ci_low": 31.985322966064253,
+      "ci_high": 71.84826550363157,
+      "sigma": 10.169117994277377,
+      "weight": 0.26214842513613296
+    }
+  ],
+  "combined": {
+    "conservative_envelope": {
+      "n_hat": 48,
+      "formula": "max_i N_hat_i"
+    },
+    "weighted_average": {
+      "n_hat": 25,
+      "n_hat_raw": 24.41076008371822,
+      "sigma": 5.206632357934835,
+      "ci_low": 14.205760662165945,
+      "ci_high": 34.615759505270496,
+      "formula": "sum(w_i N_i)/sum(w_i),  w_i=1/sigma_i^2"
+    },
+    "bayesian_fusion": {
+      "n_hat": 25,
+      "mu_post": 24.436605883694515,
+      "sigma_post": 5.171209428710512,
+      "ci_low": 14.301035403421912,
+      "ci_high": 34.57217636396712,
+      "prior_mu": 26.316713528399774,
+      "prior_sigma": 44.40718882622663,
+      "model": "gaussian",
+      "formula": "Gaussian conjugate posterior (eqs. 4-6)"
+    }
+  },
+  "model_selection": {
+    "empirical_mean": 26.316713528399774,
+    "empirical_var": 215.14766574794734,
+    "dispersion_var_over_mean": 8.17532422943959,
+    "chosen": "gaussian",
+    "reason": "over-dispersed (Var >> mean) -> Gaussian"
+  }
+}

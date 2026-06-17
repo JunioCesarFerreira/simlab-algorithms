@@ -1,0 +1,17 @@
+{
+  "instance_path": "examples/ind2.json",
+  "output_dir": "../results/method1/gambler_ruin_baseline",
+  "mode": "surrogate",
+  "partition_method": "grid",
+  "num_blocks": 8,
+  "hstar_method": "structural_greedy",
+  "hlocal_method": "deceptive_low_cost",
+  "complement_method": "bernoulli",
+  "num_complements": 30,
+  "rho": 0.5,
+  "alpha": 0.05,
+  "aggregation_method": "mean_with_std",
+  "seeds": [42, 43, 44, 45, 46],
+  "random_seed": 42,
+  "force_overwrite": true
+}

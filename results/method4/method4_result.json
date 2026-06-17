@@ -1,0 +1,52 @@
+{
+  "method": "M4",
+  "instance": "ind2",
+  "n_hat": 48,
+  "n_hat_raw": 47.27480546535737,
+  "ci_low": 31.985322966064253,
+  "ci_high": 71.84826550363157,
+  "sigma": 10.169117994277377,
+  "params": {
+    "view": "GA solution-quality gap vs MILP reference optimum",
+    "tau_gap": 0.1,
+    "r_opt": 18,
+    "f_ref": 0.9468194868789872,
+    "ref_source": "min installed_nodes among OPTIMAL MILP solves",
+    "n_milp_scored": 36,
+    "n_milp_feasible": 3,
+    "fit_model": "gap(n) = g_inf + G*exp(-n/tau)",
+    "g_inf": 0.07631215055632806,
+    "G": 0.3950712174694669,
+    "tau": 16.799240056260736,
+    "rss": 0.0004306073211414203,
+    "pop_sizes": [
+      4.0,
+      8.0,
+      16.0,
+      32.0,
+      64.0,
+      128.0,
+      256.0
+    ],
+    "mean_relays_per_size": [
+      25.0,
+      23.8,
+      22.0,
+      20.6,
+      19.4,
+      19.6,
+      19.2
+    ],
+    "gap_per_size": [
+      0.3888888888888889,
+      0.32222222222222224,
+      0.2222222222222222,
+      0.14444444444444451,
+      0.0777777777777777,
+      0.08888888888888896,
+      0.06666666666666662
+    ],
+    "target_reachable": true,
+    "n_hat_raw": 47.27480546535737
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "method": "M2",
+  "instance": "ind2",
+  "n_hat": 24,
+  "n_hat_raw": 23.26744693518326,
+  "ci_low": 9.0,
+  "ci_high": 53.0,
+  "sigma": 14.552204873030984,
+  "params": {
+    "view": "geometric coverage of mobile trajectories (adjacency)",
+    "alpha": 0.05,
+    "N": 64,
+    "T": 181,
+    "M": 4,
+    "TM": 724,
+    "k_bar": 8.0,
+    "n_blocks": 8,
+    "theta_fraction": 0.1,
+    "coverage_threshold": 72.4,
+    "C_theta": 16,
+    "estimator": "N_hat_2 = C_theta * (1/alpha)^(1/k_bar)",
+    "cov_stats": {
+      "min": 8,
+      "max": 267,
+      "mean": 65.453125,
+      "n_nonzero": 64
+    },
+    "convergence": {
+      "t_star": 154,
+      "T": 181,
+      "conv_fraction": 0.850828729281768,
+      "C_theta_final": 16
+    },
+    "theta_sweep": [
+      {
+        "theta": 0.05,
+        "C_theta": 36,
+        "n_hat": 53
+      },
+      {
+        "theta": 0.075,
+        "C_theta": 21,
+        "n_hat": 31
+      },
+      {
+        "theta": 0.1,
+        "C_theta": 16,
+        "n_hat": 24
+      },
+      {
+        "theta": 0.125,
+        "C_theta": 16,
+        "n_hat": 24
+      },
+      {
+        "theta": 0.15,
+        "C_theta": 15,
+        "n_hat": 22
+      },
+      {
+        "theta": 0.2,
+        "C_theta": 6,
+        "n_hat": 9
+      }
+    ],
+    "n_hat_raw": 23.26744693518326
+  }
+}
