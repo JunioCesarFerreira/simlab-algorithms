@@ -73,8 +73,10 @@ from pathlib import Path
 import numpy as np
 
 import adjacency_builder as ab
+from methods import bb_core
 from methods.common import (
-    INSTANCE_PATH, RESULTS_DIR, NHat, ensure_dir, get_plt, save_json,
+    INSTANCE_PATH, RESULTS_DIR, NHat, ensure_dir, get_plt,
+    make_surrogate_fitness, save_json,
 )
 
 METHOD_DIR = RESULTS_DIR / "method2"
@@ -117,11 +119,10 @@ def estimate() -> NHat:
     TM = T * M
     k_bar = N / N_BLOCKS
 
-    # headline C_theta and estimate
+    # headline C_theta (kept as the BB-directing signal / diagnostic)
     thr = THETA_FRACTION * TM
     C_theta = int((cov >= thr).sum())
-    n_raw = _n_hat(C_theta, k_bar, ALPHA)
-    n_hat = int(math.ceil(n_raw))
+    n_raw_legacy = _n_hat(C_theta, k_bar, ALPHA)         # old structural heuristic
 
     # temporal convergence of the indispensable set.
     # |C_theta(t)| is non-decreasing (fixed threshold, cumulative coverage), so
@@ -141,26 +142,26 @@ def estimate() -> NHat:
     for th in THETA_SWEEP:
         c = int((cov >= th * TM).sum())
         sweep.append({"theta": th, "C_theta": c, "n_hat": math.ceil(_n_hat(c, k_bar, ALPHA))})
-    n_vals = np.array([s["n_hat"] for s in sweep], dtype=float)
-    ci_low, ci_high = float(n_vals.min()), float(n_vals.max())
-    sigma = max(float(n_vals.std(ddof=1)) if n_vals.size > 1 else 1.0, 1.0)
-
-    params = {
-        "view": "geometric coverage of mobile trajectories (adjacency)",
-        "alpha": ALPHA, "N": N, "T": T, "M": M, "TM": TM,
-        "k_bar": k_bar, "n_blocks": N_BLOCKS,
-        "theta_fraction": THETA_FRACTION, "coverage_threshold": thr,
-        "C_theta": C_theta,
-        "estimator": "N_hat_2 = C_theta * (1/alpha)^(1/k_bar)",
-        "cov_stats": {"min": int(cov.min()), "max": int(cov.max()),
-                       "mean": float(cov.mean()), "n_nonzero": int((cov > 0).sum())},
-        "convergence": {"t_star": t_star, "T": T, "conv_fraction": conv_fraction,
-                         "C_theta_final": int(size_t[-1])},
-        "theta_sweep": sweep,
-        "n_hat_raw": n_raw,
-    }
-    return NHat(method="M2", instance=INSTANCE, n_hat=n_hat, n_hat_raw=n_raw,
-                ci_low=ci_low, ci_high=ci_high, sigma=sigma, params=params)
+    # --- the estimate itself: gambler-ruin formula on the BBs M2 directs ---
+    genes = sorted(int(u) for u in np.where(cov >= thr)[0])
+    fitness_fn, finfo = make_surrogate_fitness(INSTANCE_PATH)
+    assert finfo["N"] == N, f"candidate-count mismatch: {finfo['N']} vs {N}"
+    return bb_core.estimate_order1(
+        genes, method="M2", instance=INSTANCE,
+        fitness_fn=fitness_fn, N=N,
+        extra_params={
+            "view": "BBs directed by geometric coverage (adjacency)",
+            "bb_source": "candidates with cov(u) >= theta * T*M (coverage-indispensable)",
+            "alpha": ALPHA, "T": T, "M": M, "TM": TM,
+            "k_bar": k_bar, "n_blocks": N_BLOCKS,
+            "theta_fraction": THETA_FRACTION, "coverage_threshold": thr,
+            "C_theta": C_theta, "legacy_estimator_n_hat": math.ceil(n_raw_legacy),
+            "cov_stats": {"min": int(cov.min()), "max": int(cov.max()),
+                           "mean": float(cov.mean()), "n_nonzero": int((cov > 0).sum())},
+            "convergence": {"t_star": t_star, "T": T, "conv_fraction": conv_fraction,
+                             "C_theta_final": int(size_t[-1])},
+            "theta_sweep": sweep,
+        })
 
 
 # ---------------------------------------------------------------------------

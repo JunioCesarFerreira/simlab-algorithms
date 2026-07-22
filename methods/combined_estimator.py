@@ -68,12 +68,14 @@ METHOD_FILES = {
     "M2": RESULTS_DIR / "method2" / "method2_result.json",
     "M3": RESULTS_DIR / "method3" / "method3_result.json",
     "M4": RESULTS_DIR / "method4" / "method4_result.json",
+    "M5": RESULTS_DIR / "method5" / "method5_result.json",
 }
 METHOD_LABEL = {
     "M1": "M1 inference (diminishing returns)",
     "M2": "M2 adjacency coverage",
     "M3": "M3 routing criticality",
     "M4": "M4 MILP calibration",
+    "M5": "M5 gambler-ruin (order-1 blocks)",
 }
 
 

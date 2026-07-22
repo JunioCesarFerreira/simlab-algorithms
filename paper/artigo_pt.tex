@@ -1,0 +1,586 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+% As figuras vivem em results/<metodo>/; apontamos o graphicspath para lá,
+% de modo que o artigo compile a partir de paper/ sem copiar nada.
+\graphicspath{%
+  {../results/method1/}{../results/method2/}{../results/method3/}%
+  {../results/method4/}{../results/method5/}{../results/combined/}}
+
+\newcommand{\Nhat}{\hat{N}}
+\newcommand{\Real}{\mathbb{R}}
+\newcommand{\cov}{\operatorname{cov}}
+\newcommand{\route}{\operatorname{route}}
+\newcommand{\Atot}{A_{\mathrm{total}}}
+\newcommand{\sBB}{\sigma_{\mathrm{BB}}}
+
+\begin{document}
+
+\title{Dimensionamento da População de Algoritmos Genéticos para Posicionamento
+de Relés em Redes de Sensores Móveis: da Fórmula de Ruína do Jogador a Cinco
+Estimadores Complementares e Sua Fusão}
+
+\author{%
+\IEEEauthorblockN{Estudo SimLab Algorithms}
+\IEEEauthorblockA{Grupo de Otimização de Redes de Sensores sem Fio\\
+repositório \texttt{simlab-algorithms}}
+}
+
+\maketitle
+
+\begin{abstract}
+Escolher o tamanho da população de um algoritmo genético (AG) é uma decisão
+clássica e ainda assim incômoda na prática: pequena demais, a busca perde bons
+blocos construtivos; grande demais, desperdiça avaliações. Estudamos essa decisão
+para o problema de posicionamento de relés em uma rede de sensores sem fio móvel
+(o problema \emph{P2}), no qual um cromossomo binário seleciona um subconjunto de
+posições candidatas de modo que todo sensor móvel permaneça conectado a um
+sorvedouro em todo instante. Partimos da fórmula de dimensionamento por
+\emph{ruína do jogador} de Harik \emph{et al.}, deduzida com rigor, e mostramos que
+sua aplicação ingênua --- com blocos construtivos definidos por uma grade espacial
+arbitrária --- produz $\Nhat=2839$, duas ordens de grandeza acima do que funciona
+empiricamente. Argumentamos que isso é um \emph{artefato} do fator $2^{k-1}$:
+P2 não possui um engano do tipo Trap-$k$; seus blocos construtivos são de
+\emph{ordem~1} (genes indispensáveis isolados). Com essa definição semântica, a
+mesma fórmula devolve $\Nhat_5=75$, na mesma faixa dos demais estimadores. Em
+seguida apresentamos quatro estimadores complementares, baseados em sinais
+estruturais e de calibração (inferência por retornos decrescentes, dinâmica de
+adjacência, criticidade de roteamento e calibração por programação linear inteira
+mista --- MILP), e três estratégias de fusão (envelope conservador, média
+ponderada por precisão e atualização bayesiana gaussiana). Em uma instância fixa
+de $64$ candidatos e $4$ móveis, os cinco métodos concordam dentro de um pequeno
+fator ($\Nhat\in[14,75]$), com consenso de $29$ e recomendação conservadora de
+$75$, enquanto a fórmula mal-aplicada devolveria $2839$. A lição é que sinais
+estruturais baratos e uma definição correta de bloco construtivo bastam para
+substituir limites de pior caso para o dimensionamento prático da população.
+\end{abstract}
+
+\begin{IEEEkeywords}
+algoritmos genéticos, dimensionamento de população, ruína do jogador, blocos
+construtivos, redes de sensores sem fio, posicionamento de relés, programação
+inteira, fusão bayesiana.
+\end{IEEEkeywords}
+
+\section{Introdução}
+\label{sec:intro}
+O tamanho da população é um dos poucos parâmetros de um AG com teoria bem
+desenvolvida e, ainda assim, sem uma receita prática conveniente. Os modelos
+seminais de dimensionamento de Goldberg, Deb e Clark~\cite{goldberg1992sizing} e o
+modelo de ruína do jogador de Harik \emph{et al.}~\cite{harik1999gambler} limitam a
+população necessária para evitar a perda de um bloco construtivo correto por
+deriva genética. Esses limites são valiosos, porém de \emph{pior caso}: escalam com
+$2^{k}$ no tamanho de bloco $k$ e recomendam, rotineiramente, populações muito
+maiores do que as que funcionam na prática.
+
+Nosso ponto de partida concreto é o documento de projeto do \texttt{simlab} que
+propôs estimar a população de P2 exatamente pela fórmula de ruína do jogador,
+\begin{equation}
+\widehat{n}_i \;\approx\; -\ln(\alpha)\,2^{k_i-1}\,
+\frac{\widehat{\sigma}_{\mathrm{BB},i}\sqrt{2m}}{\widehat{d}_i},
+\qquad \Nhat=\max_i\lceil \widehat{n}_i\rceil,
+\label{eq:gr}
+\end{equation}
+deixando em aberto uma pergunta decisiva: \emph{o que é um bloco construtivo em
+P2?} Este artigo responde a essa pergunta com rigor e mostra que a resposta muda
+o resultado em duas ordens de grandeza.
+
+\paragraph*{Questões de pesquisa}
+(QP1) Qual é a definição correta de bloco construtivo em P2 e o que a fórmula de
+ruína do jogador produz sob ela? (QP2) Sinais estruturais baratos
+--- dinâmica da busca, geometria da rede, estrutura de roteamento e ótimos exatos
+--- também produzem estimativas utilizáveis? (QP3) Essas estimativas concordam e
+como fundi-las em uma única recomendação?
+
+\paragraph*{Contribuições}
+(1) A dedução rigorosa de~\eqref{eq:gr} e a demonstração de que sua aplicação por
+grade é dominada pelo fator $2^{k-1}$ (\autoref{sec:gr}). (2) Uma definição
+semântica de bloco construtivo em P2 --- genes indispensáveis de \emph{ordem~1} ---
+que reconcilia~\eqref{eq:gr} com os demais estimadores: o Método~5
+(\autoref{sec:m5}). (3) Quatro estimadores complementares e três estratégias de
+fusão (\autoref{sec:m1}--\autoref{sec:combined}). (4) Uma avaliação reprodutível
+de ponta a ponta em uma instância fixa de P2 (\autoref{sec:resultados}).
+
+\section{Trabalhos Relacionados}
+\label{sec:related}
+\textbf{Teoria de dimensionamento.} O teorema dos esquemas de
+Holland~\cite{holland1975adaptation} e a visão de blocos construtivos de
+Goldberg~\cite{goldberg1989ga} enquadram o AG como um processador de esquemas
+curtos, de baixa ordem e alta aptidão. Goldberg, Deb e
+Clark~\cite{goldberg1992sizing} dimensionaram a população para controlar a decisão
+sob ruído de aptidão; Harik \emph{et al.}~\cite{harik1999gambler} reformularam isso
+como uma caminhada aleatória de ruína do jogador, dando o limite que
+usamos~\eqref{eq:gr}.
+
+\textbf{Otimização de RSSF com AGs.} Posicionamento de nós e de relés são problemas
+clássicos de projeto de redes de sensores~\cite{younis2008placement}, comumente
+resolvidos por AGs multiobjetivo como o NSGA-III~\cite{deb2014nsga3}.
+
+\textbf{Avaliação exata e estatística.} A programação inteira mista
+(MILP)~\cite{wolsey1998integer}, resolvida por solucionadores abertos como o
+HiGHS~\cite{huangfu2018highs}, fornece referências ótimas para calibrar uma
+metaheurística. Caminhos mínimos são obtidos por busca em
+largura~\cite{cormen2009algorithms}. Nosso ferramental estatístico usa o
+\emph{bootstrap}~\cite{efron1993bootstrap} e atualizações conjugadas
+gaussianas~\cite{gelman2013bayesian}.
+
+\section{Formulação do Problema}
+\label{sec:problema}
+\subsection{O problema de posicionamento de relés P2}
+Seja $\Omega\subset\Real^2$ uma região compacta contendo um sorvedouro fixo
+$s\in\Omega$, um conjunto finito $Q=\{\xi_1,\dots,\xi_N\}$ de posições candidatas a
+relé e $M$ sensores móveis com trajetórias $\gamma_m:\Real_+\!\to\Omega$. Dois
+dispositivos se comunicam quando estão a uma distância menor ou igual ao raio de
+alcance $R$. O P2 busca o menor subconjunto $P\subseteq Q$ tal que, em todo
+instante $t$, cada móvel $\gamma_m(t)$ alcance $s$ por uma cadeia de relés
+instalados e mutuamente dentro do alcance.
+
+\subsection{Cromossomo e aptidão}
+Uma solução é um cromossomo binário $x\in\{0,1\}^{N}$ com $x_j=1$ se, e somente se,
+o candidato $j$ é instalado. Discretizamos o tempo em $T$ passos e pontuamos $x$
+com a aptidão substituta (\emph{surrogate}) determinística usada em todo o
+\texttt{simlab}:
+\begin{align}
+F(x) =\ & w_c\,\mathrm{conn}(x) - w_r\tfrac{\mathrm{rel}(x)}{N}
+        - w_h\tfrac{\overline{\mathrm{hops}}(x)}{N} \nonumber\\
+       & - w_d\tfrac{\overline{d}(x)}{100} - w_\rho\tfrac{\mathrm{red}(x)}{N},
+\label{eq:fitness}
+\end{align}
+onde $\mathrm{conn}(x)\in[0,1]$ é a fração de pares (móvel, instante) conectados ao
+sorvedouro, $\mathrm{rel}(x)$ o número de relés, e os demais termos penalizam
+número de saltos, distância média e redundância. Maior $F$ é melhor. Essa é
+exatamente a grandeza estrutural que o MILP minimiza, o que torna soluções do AG e
+do MILP diretamente comparáveis.
+
+\subsection{O problema de dimensionamento da população}
+Dado o P2 e um nível de confiança $1-\alpha$, determine o menor tamanho de
+população $\Nhat$ tal que um AG com população $\Nhat$ retorne uma boa solução com
+probabilidade pelo menos $1-\alpha$. Atacamos isso por cinco estimadores e uma
+etapa de fusão.
+
+\section{A Fórmula de Ruína do Jogador}
+\label{sec:gr}
+\subsection{Dedução}
+Considere um único bloco construtivo de ordem (comprimento) $k$. Numa população de
+tamanho $n$ inicializada uniformemente, cada indivíduo carrega a instância
+\emph{correta} do bloco com probabilidade $p_0=2^{-k}$, de modo que o número
+esperado de cópias iniciais é
+\begin{equation}
+a \;=\; n\,p_0 \;=\; n\,2^{-k}.
+\label{eq:copias}
+\end{equation}
+A competição entre a instância correta e uma competidora \emph{enganosa} (a
+configuração localmente atraente, porém globalmente inferior) é modelada como uma
+caminhada aleatória unidimensional na contagem de cópias corretas, com barreiras
+absorventes em $0$ (perda) e $n$ (fixação)~\cite{harik1999gambler}. Seja $p$ a
+probabilidade de a instância correta vencer um evento de seleção e $q=1-p$. A
+probabilidade de fixação a partir de $a$ cópias é a clássica probabilidade de ruína
+do jogador
+\begin{equation}
+P_n \;=\; \frac{1-(q/p)^{a}}{1-(q/p)^{n}} .
+\label{eq:ruina}
+\end{equation}
+O sinal que distingue as duas instâncias é a diferença média de aptidão
+$d=\mathbb{E}[F_{\text{correta}}-F_{\text{competidora}}]$. O ruído provém das
+contribuições de aptidão dos outros $m-1$ blocos, cada um com desvio $\sBB$;
+somando variâncias e comparando duas soluções independentes, o desvio efetivo da
+diferença é $\sBB\sqrt{2(m-1)}\approx\sBB\sqrt{2m}$. A probabilidade de a instância
+correta vencer é, então,
+\begin{equation}
+p \;=\; \Phi\!\left(\frac{d}{\sBB\sqrt{2m}}\right)\;=\;\Phi(x),
+\qquad x \equiv \frac{d}{\sBB\sqrt{2m}},
+\label{eq:p}
+\end{equation}
+com $\Phi$ a função de distribuição normal padrão. Para $x$ pequeno,
+$q/p\approx 1-2x$ e $\ln(q/p)\approx -2x$. Identificando $\alpha=1-P_n$ como a
+probabilidade de fracasso e tomando o limite de população grande
+($(q/p)^n\to 0$), expande-se~\eqref{eq:ruina} para obter
+$\alpha\approx (q/p)^{a}=e^{a\ln(q/p)}\approx e^{-2ax}$, donde
+$a\approx -\ln(\alpha)/(2x)$. Substituindo $a=n\,2^{-k}$ de~\eqref{eq:copias} e
+$x$ de~\eqref{eq:p},
+\begin{equation}
+\boxed{\;\widehat{n} \;\approx\; -\ln(\alpha)\,2^{k-1}\,
+\frac{\sBB\sqrt{2m}}{d}.\;}
+\label{eq:gr-final}
+\end{equation}
+Para inicialização Bernoulli$(\rho)$, a probabilidade da instância correta é
+$\pi=\rho^{s}(1-\rho)^{k-s}$ (sendo $s$ o número de bits ativos da instância
+correta), $a=n\pi$, e o fator de ordem $2^{k-1}$ é substituído por $1/(2\pi)$:
+\begin{equation}
+\widehat{n} \;\approx\; \frac{-\ln(\alpha)}{2\pi}\,\frac{\sBB\sqrt{2m}}{d}.
+\label{eq:gr-bern}
+\end{equation}
+Agregamos sobre os $m$ blocos de modo conservador: $\Nhat=\max_i\lceil
+\widehat{n}_i\rceil$, pois basta um bloco mal dimensionado para comprometer a
+solução.
+
+\subsection{Estimando $d$ e $\sBB$ por diferenças entre amostras}
+Para um bloco $Q_i$ com instância correta $H_i^*$ e competidora enganosa $H_i^L$,
+sorteamos $R$ \emph{complementos} $x_{-i}^{(r)}\sim\text{Bernoulli}(\rho)$ que
+preenchem os bits fora do bloco, compomos as soluções completas
+$(H_i^*,x_{-i}^{(r)})$ e $(H_i^L,x_{-i}^{(r)})$, avaliamos ambas com a aptidão
+substituta~\eqref{eq:fitness} e formamos as diferenças entre amostras
+\begin{equation}
+\Delta_i^{(r)} = F(H_i^*,x_{-i}^{(r)}) - F(H_i^L,x_{-i}^{(r)}),
+\label{eq:delta}
+\end{equation}
+\begin{equation}
+\widehat{d}_i = \tfrac1R\textstyle\sum_r \Delta_i^{(r)},
+\qquad
+\widehat{\sigma}_{\mathrm{BB},i} = \operatorname{sd}_r\!\big(\Delta_i^{(r)}\big).
+\label{eq:dsigma}
+\end{equation}
+
+\subsection{Por que a aplicação ingênua falha}
+A grandeza dominante em~\eqref{eq:gr-final} é $2^{k-1}$: ela \emph{dobra} a cada bit
+acrescentado ao bloco. O estimador pré-existente do repositório particiona os
+$N=64$ candidatos em $8$ blocos por uma grade espacial, gerando blocos de até
+$k=10$. O bloco mais difícil (grade) tinha $k=9$, $\widehat{\sBB}=0{,}123$,
+$\widehat{d}=0{,}141$, produzindo $2^{8}\cdot$ um fator $O(1)$ e, ao final,
+$\Nhat=2839$. Esse valor é um \emph{artefato} da hipótese de que existe um esquema
+Trap-$k$ com uma única configuração correta entre $2^k$. P2 não tem esse engano,
+como argumentamos a seguir.
+
+\section{Método 5: Blocos Construtivos Semânticos de Ordem~1}
+\label{sec:m5}
+\subsection{O que é um bloco construtivo em P2}
+O fator $2^{k-1}$ pressupõe que, dentro do bloco, exatamente uma das $2^{k}$
+configurações é aceitável. Em P2 isso é falso: uma região de candidatos
+mutuamente alcançáveis admite \emph{muitas} coberturas aceitáveis (qualquer
+subconjunto que mantenha a conectividade serve), de modo que sua ordem efetiva
+\emph{não} é a contagem de candidatos. A dificuldade real de P2 não é um único
+engano de $k$ bits, mas \emph{muitos} genes indispensáveis espalhados pelo
+cromossomo --- cada um um relé que, se removido, desconecta algum par
+(móvel, instante).
+
+Definimos, portanto, o bloco construtivo de P2 como sendo de \textbf{ordem~1}:
+cada candidato indispensável $u$ é o seu próprio bloco $Q_u=\{u\}$, com
+\begin{itemize}
+\item $H_u^*$: bit $u$ ligado (instância correta, $k_u=s_u=1$);
+\item $H_u^L$: bit $u$ desligado (o gene é perdido).
+\end{itemize}
+O conjunto de candidatos críticos é a união dos indispensáveis por cobertura
+(Método~2, $\cov(u)\ge\theta\,TM$) e dos críticos por roteamento (Método~3,
+$\route(u)\ge\phi$). Os demais candidatos são preenchimento intercambiável e não
+formam bloco algum.
+
+\subsection{Filtro de significância (blocos vinculantes)}
+Estimamos $(\widehat{d}_u,\widehat{\sigma}_{\mathrm{BB},u})$ por~\eqref{eq:delta}--\eqref{eq:dsigma}
+com $R=60$ complementos. Um gene só é um bloco \emph{vinculante} se seu sinal médio
+for \emph{significativamente} positivo (teste unilateral a $95\%$):
+\begin{equation}
+\widehat{d}_u \;>\; z_{0{,}95}\,\frac{\widehat{\sigma}_{\mathrm{BB},u}}{\sqrt{R}},
+\qquad z_{0{,}95}=1{,}645.
+\label{eq:signif}
+\end{equation}
+Genes cujo sinal é indistinguível de zero são substituíveis (há outro relé que os
+cobre) e são descartados; isso também estabiliza o $\max_i$ contra a singularidade
+$1/d$ quando $d\to 0$. Com $k_u=1$, o fator de ordem é $2^{0}=1$ e
+\begin{equation}
+\boxed{\;\widehat{n}_u = -\ln(\alpha)\,\frac{\widehat{\sigma}_{\mathrm{BB},u}\sqrt{2m}}{\widehat{d}_u},
+\quad \Nhat_5=\max_u\lceil \widehat{n}_u\rceil,\;}
+\label{eq:m5}
+\end{equation}
+sendo $m$ o número de blocos vinculantes. Note que~\eqref{eq:m5} coincide com a
+variante Bernoulli~\eqref{eq:gr-bern} para $\pi=\rho=\tfrac12$, como esperado para
+um bloco de ordem~1 sob inicialização Bernoulli$(0{,}5)$.
+
+\begin{algorithm}[!t]
+\caption{Estimativa do Método 5}
+\label{alg:m5}
+\begin{algorithmic}[1]
+\Require limiares $\theta,\phi$; complementos $R$; nível $\alpha$
+\State $\mathrm{Crit}\gets\{u:\cov(u)\ge\theta TM \ \vee\ \route(u)\ge\phi\}$
+\For{cada $u\in\mathrm{Crit}$}
+  \State estime $\widehat d_u,\widehat{\sigma}_{\mathrm{BB},u}$ por $R$ complementos~\eqref{eq:dsigma}
+  \State marque $u$ vinculante se satisfaz~\eqref{eq:signif}
+\EndFor
+\State $m\gets\#\{\text{blocos vinculantes}\}$
+\State $\Nhat_5\gets\max_u\lceil -\ln(\alpha)\,\widehat{\sigma}_{\mathrm{BB},u}\sqrt{2m}/\widehat d_u\rceil$
+\State \Return $\Nhat_5$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Sensibilidade à ordem (diagnóstico)}
+Para tornar explícita a fragilidade de~\eqref{eq:gr-final}, também reportamos o
+agrupamento por \emph{componentes conexas} dos candidatos críticos (aresta se
+$\lVert u-v\rVert\le R$) e o que aconteceria se cada componente fosse tratada como
+um bloco Trap-$k$ de ordem igual ao seu tamanho. \autoref{fig:m5-blocks} mostra os
+blocos no espaço e \autoref{fig:m5-perblock} o limite por gene.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.92\columnwidth]{method5_blocks_spatial.png}
+\caption{Método 5: candidatos de preenchimento (cinza) e blocos construtivos de
+ordem~1 (genes indispensáveis), dimensionados/coloridos por $\widehat n_u$; a
+estrela é o sorvedouro.}
+\label{fig:m5-blocks}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{method5_per_block.png}
+\caption{Método 5: limite de ruína do jogador por gene $\widehat n_u$
+($k_u{=}1$), ordenado; a linha tracejada é $\Nhat_5=\max_u \widehat n_u$.}
+\label{fig:m5-perblock}
+\end{figure}
+
+\section{Método 1: Inferência por Diferenças entre Amostras}
+\label{sec:m1}
+Executa-se o AG numa escada de tamanhos de população $n$ e registra-se a aptidão
+convergida $F^*(n)$, média sobre sementes. Cada indivíduo extra contribui com ganho
+marginal decrescente, modelado pelo crescimento saturante
+\begin{equation}
+F^*(n) = F_\infty - A\,e^{-n/\tau}, \qquad A>0,\ \tau>0.
+\label{eq:m1-model}
+\end{equation}
+Declarando a população suficiente quando a melhoria relativa remanescente cai
+abaixo de uma tolerância $\varepsilon$ ($e^{-n/\tau}\le\varepsilon$), obtém-se
+\begin{equation}
+\boxed{\;\Nhat_1 = \left\lceil \tau\,\ln\!\tfrac{1}{\varepsilon}\right\rceil.\;}
+\label{eq:m1-est}
+\end{equation}
+O ajuste de~\eqref{eq:m1-model} é uma busca em grade unidimensional em $\tau$ com
+solução de mínimos quadrados fechada em $(F_\infty,A)$; o intervalo de confiança de
+$95\%$ vem de \emph{bootstrap} sobre as sementes~\cite{efron1993bootstrap}.
+\autoref{fig:m1-sat} mostra a curva de saturação e $\Nhat_1$.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{method1_saturation.png}
+\caption{Método 1: aptidão convergida $F^*(n)$ versus tamanho da população, com o
+modelo saturante~\eqref{eq:m1-model} e $\Nhat_1$.}
+\label{fig:m1-sat}
+\end{figure}
+
+\section{Método 2: Dinâmica Temporal da Matriz de Adjacência}
+\label{sec:m2}
+Com o leiaute canônico $K=1+N+M=[\text{sorvedouro},\text{candidatos},\text{móveis}]$,
+a adjacência por instante codifica a alcançabilidade geométrica,
+$A(t)[u,v]=1 \iff u\neq v \wedge \lVert p_u(t)-p_v(t)\rVert\le R$, e a matriz de
+coocorrência acumulada é $\Atot[u,v]=\sum_{t}A(t)[u,v]$. A cobertura de um candidato
+é $\cov(u)=\sum_{m}\Atot[u,m]\in[0,TM]$, e os indispensáveis a uma fração $\theta$
+são $C_\theta=\#\{u:\cov(u)\ge\theta\,TM\}$. O número mínimo de relés que cobrem a
+trajetória é limitado inferiormente por $C_\theta$; espalhando esses genes por
+blocos de tamanho médio $\bar k=N/B$, um indivíduo aleatório carrega todos com
+baixa probabilidade, dando
+\begin{equation}
+\boxed{\;\Nhat_2=\left\lceil C_\theta\,(1/\alpha)^{1/\bar k}\right\rceil.\;}
+\label{eq:m2-est}
+\end{equation}
+Varremos $\theta\in[0{,}05,0{,}20]$ para um intervalo de incerteza.
+\autoref{fig:m2-conv} mostra a convergência temporal de $|C_\theta(t)|$.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{method2_convergence.png}
+\caption{Método 2: convergência temporal do conjunto indispensável
+$|C_\theta(t)|$.}
+\label{fig:m2-conv}
+\end{figure}
+
+\section{Método 3: Variante da Matriz de Roteamento}
+\label{sec:m3}
+O Método 3 espelha o Método 2, mas troca \emph{alcançabilidade} por \emph{uso}. Em
+cada $t$ executa-se uma busca em largura a partir do sorvedouro em
+$A(t)$~\cite{cormen2009algorithms} e mantêm-se apenas nós e arestas em um caminho
+mínimo móvel--sorvedouro. Com $\text{node\_acc}[u]=\sum_t\#\{\text{móveis cujo
+caminho mínimo usa }u\}$, o escore de roteamento é
+$\route(u)=\text{node\_acc}[u]/(TM)\in[0,1]$, e os relés críticos são
+$R_\phi=\#\{u:\route(u)\ge\phi\}$. O estimador é análogo a~\eqref{eq:m2-est}:
+\begin{equation}
+\boxed{\;\Nhat_3=\left\lceil |R_\phi|\,(1/\alpha)^{1/\bar k}\right\rceil.\;}
+\label{eq:m3-est}
+\end{equation}
+Como $R(t)\subseteq A(t)$, o roteamento é mais esparso que a cobertura, e
+$\Nhat_3<\Nhat_2$. \autoref{fig:m3-route} mostra os escores ordenados.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{method3_route_bar.png}
+\caption{Método 3: escore de roteamento por candidato $\route(u)$, ordenado; a
+linha tracejada é o limiar $\phi$.}
+\label{fig:m3-route}
+\end{figure}
+
+\section{Método 4: Calibração por MILP}
+\label{sec:m4}
+Uma varredura MILP resolve a mesma instância à (quase-)otimalidade, fornecendo uma
+referência verdadeira. A qualidade em P2 é a contagem de relés à conectividade
+plena, logo o ótimo de referência é
+$r_{\mathrm{opt}}=\min\{\mathrm{rel}(x): x\ \text{ótimo do MILP}\}$. Para população
+$n$, com $r_{\mathrm{GA}}(n)$ a contagem convergida do AG, a folga de otimalidade é
+$\mathrm{gap}(n)=(r_{\mathrm{GA}}(n)-r_{\mathrm{opt}})/r_{\mathrm{opt}}\ge 0$,
+calibrada por $\mathrm{gap}(n)=g_\infty+G\,e^{-n/\tau}$. Invertendo na tolerância
+alvo $\tau_{\mathrm{gap}}$,
+\begin{equation}
+\boxed{\;\Nhat_4=\left\lceil \tau\,\ln\!\frac{G}{\tau_{\mathrm{gap}}-g_\infty}
+\right\rceil,\quad \tau_{\mathrm{gap}}>g_\infty.\;}
+\label{eq:m4-est}
+\end{equation}
+\autoref{fig:m4-gap} mostra a folga calibrada e $\Nhat_4$.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{method4_gap_vs_pop.png}
+\caption{Método 4: folga de otimalidade do AG versus tamanho da população, o
+ajuste de calibração, o alvo $\tau_{\mathrm{gap}}$ e $\Nhat_4$.}
+\label{fig:m4-gap}
+\end{figure}
+
+\section{Estimador Combinado}
+\label{sec:combined}
+Cada método retorna $(\Nhat_i,\sigma_i)$. Fundimo-los de três maneiras.
+\paragraph*{Envelope conservador} $\Nhat_{\mathrm{env}}=\max_i \Nhat_i$, garantindo
+que todo critério seja atendido.
+\paragraph*{Média ponderada por precisão} Com precisões $w_i=1/\sigma_i^2$,
+$\Nhat_{\mathrm{wavg}}=\big(\sum_i w_i \Nhat_i\big)/\big(\sum_i w_i\big)$ e
+$\mathrm{Var}=1/\sum_i w_i$.
+\paragraph*{Fusão bayesiana gaussiana} Tratando
+$\Nhat_i\sim\mathcal{N}(N^*,\sigma_i^2)$ com a priori fraca
+$N^*\sim\mathcal{N}(\mu_0,\sigma_0^2)$~\cite{gelman2013bayesian}, a posteriori é
+gaussiana com $1/\sigma_{\mathrm{post}}^2=1/\sigma_0^2+\sum_i 1/\sigma_i^2$ e
+$\mu_{\mathrm{post}}=\sigma_{\mathrm{post}}^2(\mu_0/\sigma_0^2+\sum_i\Nhat_i/\sigma_i^2)$.
+Um modelo de Poisson forçaria $\mathrm{Var}=\text{média}$; as estimativas são
+fortemente superdispersas (razão $\approx 18$), o que seleciona o modelo gaussiano.
+
+\section{Configuração Experimental}
+\label{sec:setup}
+\textbf{Instância.} Uma instância fixa de P2 (\texttt{ind2}): $N=64$ candidatos,
+$M=4$ móveis em trajetórias fechadas, raio $R=50$, região $[-150,150]^2$,
+sorvedouro na origem, horizonte $T=181$ passos.
+
+\textbf{AG.} Cromossomo binário de comprimento $N$; cruzamento uniforme
+($p_c=0{,}9$), mutação bit-flip ($p_m=1/N$), seleção por torneio-3, elitismo 1,
+inicialização Bernoulli$(0{,}5)$, $80$ gerações. Tamanhos
+$n\in\{4,8,16,32,64,128,256\}$ sobre sementes $\{0,\dots,4\}$.
+
+\textbf{Ajustes.} $\alpha=0{,}05$; Método 1 $\varepsilon=0{,}05$; Métodos 2/3 e o
+diagnóstico de grade $\bar k=N/8=8$; Método 4 alvo $\tau_{\mathrm{gap}}=0{,}10$;
+Método 5 $\theta=0{,}10$, $\phi=0{,}05$, $R=60$ complementos. Intervalos de
+confiança usam $1000$ reamostragens \emph{bootstrap}.
+
+\section{Resultados e Discussão}
+\label{sec:resultados}
+\subsection{Estimativas por método}
+\textbf{Método 1.} A curva de aptidão ajusta~\eqref{eq:m1-model} estreitamente
+($F_\infty=0{,}970$, $A=0{,}013$, $\tau=7{,}2$), dando $\Nhat_1=22$, IC $[15,73]$.
+
+\textbf{Método 2.} Em $\theta=0{,}10$ há $C_\theta=16$ candidatos indispensáveis,
+$\Nhat_2=24$; o conjunto só se revela tardiamente ($t^*=154/181$, $85\%$).
+
+\textbf{Método 3.} Apenas $|R_\phi|=9$ candidatos são críticos de roteamento em
+$\phi=0{,}05$, dando $\Nhat_3=14$.
+
+\textbf{Método 4.} O ótimo MILP é $r_{\mathrm{opt}}=18$ relés. A folga cai de
+$39\%$ em $n=4$ para $7\%$ em $n=256$ ($g_\infty=0{,}076$, $G=0{,}40$,
+$\tau=16{,}8$); atingir o alvo de $10\%$ exige $\Nhat_4=48$, IC $[32,72]$.
+
+\textbf{Método 5 (ruína do jogador, fiel).} Dos $22$ candidatos críticos, $m=18$
+são blocos vinculantes de ordem~1 após o filtro~\eqref{eq:signif}. O gene mais
+exigente (índice $13$, $\widehat d=0{,}0063$, $\widehat\sBB=0{,}026$) domina,
+dando $\Nhat_5=75$, com a maioria dos genes na faixa $[18,75]$. Isto está
+\emph{na mesma ordem de grandeza} dos demais métodos.
+
+\textbf{Reconciliação.} A mesma fórmula~\eqref{eq:gr-final}, com blocos de grade,
+devolve $2839$; com componentes conexas tratadas como Trap-$k$, devolve dezenas de
+milhares (componente $k=12\Rightarrow 6{,}3\times10^4$; $k=9\Rightarrow 5{,}8\times
+10^3$). A diferença de duas a três ordens de grandeza não está no sinal/ruído --- é
+inteiramente o fator $2^{k-1}$ sob uma hipótese de ordem incorreta. Com a ordem
+correta (1), a fórmula concorda com os sinais estruturais.
+
+\subsection{Fusão}
+\autoref{tab:summary} reúne as estimativas. Os cinco métodos abrangem $14$--$75$. A
+ponderação por precisão coloca mais peso no Método 3 ($w_3=0{,}45$) e dá
+$\Nhat_{\mathrm{wavg}}=29$; a posteriori bayesiana concorda em $29$, IC $[19,38]$.
+O envelope conservador é $75$. \autoref{fig:combined} mostra todas as estimativas
+em eixo logarítmico, com a linha pontilhada da grade ($2839$) destacando o
+artefato corrigido pelo Método 5.
+
+\begin{table}[!t]
+\centering
+\caption{Estimativas de tamanho de população e fusão na instância \texttt{ind2}.}
+\label{tab:summary}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Estimador & $\Nhat$ & IC inf. & IC sup. & $\sigma$ \\
+\midrule
+M1 inferência (retornos decresc.) & 22 & 15 & 73 & 14{,}8 \\
+M2 cobertura (adjacência)         & 24 &  9 & 53 & 14{,}6 \\
+M3 criticidade (roteamento)       & 14 &  6 & 27 &  7{,}5 \\
+M4 calibração MILP                & 48 & 32 & 72 & 10{,}2 \\
+M5 ruína do jogador (ordem 1)     & 75 & 18 & 75 & 17{,}8 \\
+\midrule
+Fusão: envelope conservador       & 75 & -- & -- & -- \\
+Fusão: média ponderada            & 29 & 19 & 38 &  5{,}0 \\
+Fusão: bayesiana gaussiana        & 29 & 19 & 38 &  5{,}0 \\
+\midrule
+\multicolumn{5}{l}{\emph{Aplicação ingênua da mesma fórmula (artefato):}}\\
+GR por grade ($\bar k$ até 9)      & 2839 & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{combined_comparison.png}
+\caption{As cinco estimativas (com incerteza) e as três fusões, em eixo
+logarítmico; a linha pontilhada é a aplicação ingênua por grade ($2839$).}
+\label{fig:combined}
+\end{figure}
+
+\subsection{Discussão}
+O resultado central é metodológico: a fórmula de ruína do jogador não estava
+``errada'' --- estava \emph{mal parametrizada}. Toda a discrepância de duas ordens
+de grandeza vinha de impor blocos de alta ordem a um problema sem engano Trap-$k$.
+Definido o bloco corretamente (ordem~1, um gene indispensável por vez), a fórmula
+clássica e os quatro sinais estruturais concordam dentro de um fator $\approx 5$.
+Isso responde à QP1 (o bloco de P2 é de ordem~1), à QP2 (sim, os sinais baratos são
+utilizáveis) e à QP3 (concordam; a fusão por precisão dá $29$).
+
+\subsection{Ameaças à validade}
+Os resultados são sobre uma única instância, de modo que os números absolutos devem
+ser lidos como prova de conceito; a concordância entre métodos é o achado
+transferível. A aptidão substituta, embora estruturalmente fiel, não é uma
+simulação em nível de pacote; validação por COOJA~\cite{osterlind2006cooja} fica
+para trabalho futuro. Os Métodos 2, 3 e 5 usam limiares ($\theta,\phi$) cuja
+varredura reportamos como intervalo, e o filtro de significância~\eqref{eq:signif}
+do Método 5 supõe normalidade aproximada das diferenças $\Delta$.
+
+\section{Conclusão}
+\label{sec:conclusao}
+Deduzimos com rigor a fórmula de ruína do jogador para o dimensionamento da
+população, mostramos que sua aplicação ingênua a P2 superestima a população em duas
+ordens de grandeza por causa do fator $2^{k-1}$, e demos a definição semântica
+correta de bloco construtivo em P2 --- genes indispensáveis de ordem~1 ---, sob a
+qual a mesma fórmula devolve $\Nhat_5=75$, compatível com quatro estimadores
+estruturais independentes. A fusão por precisão recomenda $29$ e o envelope
+conservador, $75$. Trabalhos futuros incluem repetir o estudo numa biblioteca de
+instâncias, validar as populações escolhidas contra execuções do NSGA-III e do
+COOJA, e investigar blocos de ordem intermediária (regiões de redundância com
+probabilidade de cobertura $\pi_i=1-(1-\rho)^{k_i}$) entre os extremos de ordem~1 e
+Trap-$k$.
+
+\section*{Reprodutibilidade}
+Todo o código, dados e figuras estão no repositório \texttt{simlab-algorithms}:
+\texttt{methods/} (os cinco estimadores e a fusão), \texttt{ga/} (motor e execuções
+do AG) e \texttt{results/} (saídas e figuras). O Método 5 está em
+\texttt{methods/method5\_building\_blocks.py}.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

@@ -1,15 +1,208 @@
 {
   "method": "M3",
   "instance": "ind2",
-  "n_hat": 14,
-  "n_hat_raw": 13.087938901040584,
-  "ci_low": 6.0,
-  "ci_high": 27.0,
-  "sigma": 7.467708260682569,
+  "n_hat": 26,
+  "n_hat_raw": 26.0,
+  "ci_low": 13.0,
+  "ci_high": 26.0,
+  "sigma": 4.719934086168766,
   "params": {
-    "view": "operational routing usage (shortest paths)",
+    "estimator": "gambler-ruin order-1:  N_hat = max_u ceil(-ln(alpha) * sigma_BB_u * sqrt(2m) / d_u),  k_u=1",
     "alpha": 0.05,
+    "rho": 0.5,
+    "num_complements": 60,
     "N": 64,
+    "n_nominated": 9,
+    "m_blocks": 9,
+    "worst_candidate": 6,
+    "n_per_block": [
+      15,
+      23,
+      18,
+      26,
+      20,
+      13,
+      23,
+      16,
+      13
+    ],
+    "blocks": [
+      {
+        "block_id": 0,
+        "candidate": 0,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.0969400141441215,
+        "sigma_BB_i_hat": 0.11083766947030012,
+        "snr": 1.1433634546980451,
+        "n_i_uniform": 15
+      },
+      {
+        "block_id": 1,
+        "candidate": 4,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.06915706519841093,
+        "sigma_BB_i_hat": 0.12260900090354242,
+        "snr": 1.7729063625210009,
+        "n_i_uniform": 23
+      },
+      {
+        "block_id": 2,
+        "candidate": 5,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.1457546135435968,
+        "sigma_BB_i_hat": 0.20012649986348202,
+        "snr": 1.3730371546944,
+        "n_i_uniform": 18
+      },
+      {
+        "block_id": 3,
+        "candidate": 6,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.05734766909638474,
+        "sigma_BB_i_hat": 0.11435656676647483,
+        "snr": 1.994092673135062,
+        "n_i_uniform": 26
+      },
+      {
+        "block_id": 4,
+        "candidate": 8,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.10594489498404326,
+        "sigma_BB_i_hat": 0.16297067530225284,
+        "snr": 1.5382588781346986,
+        "n_i_uniform": 20
+      },
+      {
+        "block_id": 5,
+        "candidate": 9,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.0769540519706753,
+        "sigma_BB_i_hat": 0.07497759978042742,
+        "snr": 0.9743164636606655,
+        "n_i_uniform": 13
+      },
+      {
+        "block_id": 6,
+        "candidate": 12,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.023628206873360875,
+        "sigma_BB_i_hat": 0.04192688789504267,
+        "snr": 1.7744422215260125,
+        "n_i_uniform": 23
+      },
+      {
+        "block_id": 7,
+        "candidate": 28,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.04801710805775509,
+        "sigma_BB_i_hat": 0.05960292168750094,
+        "snr": 1.2412851189582348,
+        "n_i_uniform": 16
+      },
+      {
+        "block_id": 8,
+        "candidate": 30,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.16628579640667754,
+        "sigma_BB_i_hat": 0.16327166852252972,
+        "snr": 0.9818738103356928,
+        "n_i_uniform": 13
+      }
+    ],
+    "measured": [
+      {
+        "candidate": 0,
+        "h_star": 1,
+        "d_i_hat": 0.0969400141441215,
+        "sigma_BB_i_hat": 0.11083766947030012,
+        "se": 0.014309081599697153,
+        "z_score": 6.774719500248933,
+        "binding": true
+      },
+      {
+        "candidate": 4,
+        "h_star": 1,
+        "d_i_hat": 0.06915706519841093,
+        "sigma_BB_i_hat": 0.12260900090354242,
+        "se": 0.015828753953151663,
+        "z_score": 4.369078286458617,
+        "binding": true
+      },
+      {
+        "candidate": 5,
+        "h_star": 1,
+        "d_i_hat": 0.1457546135435968,
+        "sigma_BB_i_hat": 0.20012649986348202,
+        "se": 0.025836220036868224,
+        "z_score": 5.641483674299311,
+        "binding": true
+      },
+      {
+        "candidate": 6,
+        "h_star": 1,
+        "d_i_hat": 0.05734766909638474,
+        "sigma_BB_i_hat": 0.11435656676647483,
+        "se": 0.014763369287200453,
+        "z_score": 3.8844567239880687,
+        "binding": true
+      },
+      {
+        "candidate": 8,
+        "h_star": 1,
+        "d_i_hat": 0.10594489498404326,
+        "sigma_BB_i_hat": 0.16297067530225284,
+        "se": 0.02103942371219339,
+        "z_score": 5.035541678009125,
+        "binding": true
+      },
+      {
+        "candidate": 9,
+        "h_star": 1,
+        "d_i_hat": 0.0769540519706753,
+        "sigma_BB_i_hat": 0.07497759978042742,
+        "se": 0.009679566509606675,
+        "z_score": 7.950154781652747,
+        "binding": true
+      },
+      {
+        "candidate": 12,
+        "h_star": 1,
+        "d_i_hat": 0.023628206873360875,
+        "sigma_BB_i_hat": 0.04192688789504267,
+        "se": 0.005412737952526853,
+        "z_score": 4.365296654040015,
+        "binding": true
+      },
+      {
+        "candidate": 28,
+        "h_star": 1,
+        "d_i_hat": 0.04801710805775509,
+        "sigma_BB_i_hat": 0.05960292168750094,
+        "se": 0.007694704102699867,
+        "z_score": 6.24027999217113,
+        "binding": true
+      },
+      {
+        "candidate": 30,
+        "h_star": 1,
+        "d_i_hat": 0.16628579640667754,
+        "sigma_BB_i_hat": 0.16327166852252972,
+        "se": 0.021078281769841844,
+        "z_score": 7.888963541828828,
+        "binding": true
+      }
+    ],
+    "view": "BBs directed by operational routing usage (shortest paths)",
+    "bb_source": "candidates with route(u) >= phi (routing-critical)",
     "T": 181,
     "M": 4,
     "TM": 724,
@@ -17,7 +210,7 @@
     "n_blocks": 8,
     "phi": 0.05,
     "R_phi": 9,
-    "estimator": "N_hat_3 = |R_phi| * (1/alpha)^(1/k_bar)",
+    "legacy_estimator_n_hat": 14,
     "route_stats": {
       "max": 0.44613259668508287,
       "mean": 0.03671011740331492,
@@ -64,7 +257,6 @@
         "R_phi": 4,
         "n_hat": 6
       }
-    ],
-    "n_hat_raw": 13.087938901040584
+    ]
   }
 }

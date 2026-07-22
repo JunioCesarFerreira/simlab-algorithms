@@ -95,14 +95,18 @@ from pathlib import Path
 
 import numpy as np
 
+from methods import bb_core
 from methods.common import (
-    GA_RUNS_DIR, RESULTS_DIR, NHat, bootstrap_ci, ensure_dir,
-    fit_saturating_exponential, get_plt, hamming, load_json, save_json,
+    GA_RUNS_DIR, INSTANCE_PATH, RESULTS_DIR, NHat, bootstrap_ci, ensure_dir,
+    fit_saturating_exponential, get_plt, hamming, load_json,
+    make_surrogate_fitness, save_json,
 )
 
 METHOD_DIR = RESULTS_DIR / "method1"
 EPS_REL = 0.05            # within 5 % of the infinite-population quality
 INSTANCE = "ind2"
+ELITE_Q = 0.05           # top fraction of the GA stream taken as "converged elite"
+ELITE_FREQ = 0.80        # gene is a BB if ON in >= this fraction of the elite
 
 
 # ---------------------------------------------------------------------------
@@ -126,53 +130,58 @@ def _n95_from_fit(sizes: np.ndarray, means: np.ndarray, eps_rel: float) -> float
 # ---------------------------------------------------------------------------
 # Estimation
 # ---------------------------------------------------------------------------
+def _converged_genes() -> tuple[list[int], dict]:
+    """BB source for Method 1: genes the GA's high-fitness elite converges on.
+
+    Take the top ``ELITE_Q`` fraction of the distinct evaluated stream by fitness;
+    a gene is nominated as a (must-install) building block if it is ON in at least
+    ``ELITE_FREQ`` of that elite — i.e. the search dynamics single it out as part
+    of every good solution.
+    """
+    data = load_json(GA_RUNS_DIR / "ga_evaluated_stream.json")
+    stream = data["stream"]
+    F = np.array([s["F"] for s in stream], dtype=float)
+    X = np.array([np.frombuffer(s["chromosome"].encode(), dtype=np.uint8) - ord("0")
+                  for s in stream])
+    k = max(1, int(len(F) * ELITE_Q))
+    elite = np.argsort(F)[-k:]
+    freq = X[elite].mean(axis=0)
+    genes = sorted(int(u) for u in np.where(freq >= ELITE_FREQ)[0])
+    return genes, {"elite_size": int(k), "elite_freq_threshold": ELITE_FREQ,
+                   "gene_on_freq": {int(u): float(freq[u]) for u in genes}}
+
+
 def estimate() -> NHat:
+    # --- BB-directing signal: the diminishing-returns curve (kept as diagnostic) ---
     by_n = _load_ga_summary()
     sizes = np.array(sorted(by_n), dtype=float)
     per_seed = np.array([by_n[int(n)] for n in sizes])   # (K, S)
     means = per_seed.mean(axis=1)
-
-    n95_raw, fit = _n95_from_fit(sizes, means, EPS_REL)
-    n_hat = int(math.ceil(n95_raw))
-
-    # Bootstrap over seeds for a CI on N_hat_1.
-    S = per_seed.shape[1]
-    rng = np.random.default_rng(0)
-    boots = []
-    for _ in range(1000):
-        idx = rng.integers(0, S, size=S)
-        bm = per_seed[:, idx].mean(axis=1)
-        try:
-            val, _ = _n95_from_fit(sizes, bm, EPS_REL)
-            if np.isfinite(val):
-                boots.append(val)
-        except Exception:
-            pass
-    boots = np.array(boots)
-    ci_low = float(np.percentile(boots, 2.5)) if boots.size else n95_raw
-    ci_high = float(np.percentile(boots, 97.5)) if boots.size else n95_raw
-    sigma = max((ci_high - ci_low) / (2 * 1.96), 1.0)
-
-    # View B: inter-sample information gain from the reference stream.
+    _, fit = _n95_from_fit(sizes, means, EPS_REL)
+    tau_n95 = fit["tau"] * math.log(1.0 / EPS_REL)       # legacy diminishing-returns scale
     info = _information_gain()
-
-    # Baseline: gambler-ruin closed form on the same instance.
     baseline = _load_gambler_ruin_baseline()
 
-    params = {
-        "view": "diminishing returns of converged GA fitness vs population size",
-        "eps_rel": EPS_REL,
-        "fit_model": "F*(n) = F_inf - A*exp(-n/tau)",
-        "F_inf": fit["y_inf"], "A": fit["amp"], "tau": fit["tau"], "rss": fit["rss"],
-        "pop_sizes": sizes.tolist(),
-        "mean_F_per_size": means.tolist(),
-        "std_F_per_size": per_seed.std(axis=1).tolist(),
-        "information_gain": info,
-        "gambler_ruin_baseline": baseline,
-        "n_hat_raw": n95_raw,
-    }
-    return NHat(method="M1", instance=INSTANCE, n_hat=n_hat, n_hat_raw=n95_raw,
-                ci_low=ci_low, ci_high=ci_high, sigma=sigma, params=params)
+    # --- the estimate itself is the gambler-ruin formula on the BBs M1 directs ---
+    genes, elite_diag = _converged_genes()
+    fitness_fn, finfo = make_surrogate_fitness(INSTANCE_PATH)
+    res = bb_core.estimate_order1(
+        genes, method="M1", instance=INSTANCE,
+        fitness_fn=fitness_fn, N=finfo["N"],
+        extra_params={
+            "view": "BBs directed by GA search dynamics (converged elite genes)",
+            "bb_source": "genes ON in >= ELITE_FREQ of the top-ELITE_Q fitness elite",
+            "eps_rel": EPS_REL, "fit_model": "F*(n) = F_inf - A*exp(-n/tau)",
+            "F_inf": fit["y_inf"], "A": fit["amp"], "tau": fit["tau"], "rss": fit["rss"],
+            "diminishing_returns_n95": tau_n95,
+            "pop_sizes": sizes.tolist(),
+            "mean_F_per_size": means.tolist(),
+            "std_F_per_size": per_seed.std(axis=1).tolist(),
+            "information_gain": info,
+            "gambler_ruin_baseline": baseline,
+            "elite": elite_diag,
+        })
+    return res
 
 
 def _information_gain() -> dict:

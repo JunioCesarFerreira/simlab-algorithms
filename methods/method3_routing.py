@@ -60,8 +60,10 @@ import numpy as np
 
 import adjacency_builder as ab
 import path_builder as pb
+from methods import bb_core
 from methods.common import (
-    INSTANCE_PATH, RESULTS_DIR, NHat, ensure_dir, get_plt, save_json,
+    INSTANCE_PATH, RESULTS_DIR, NHat, ensure_dir, get_plt,
+    make_surrogate_fitness, save_json,
 )
 
 METHOD_DIR = RESULTS_DIR / "method3"
@@ -102,8 +104,7 @@ def estimate() -> NHat:
     k_bar = N / N_BLOCKS
 
     R_phi = int((route >= PHI).sum())
-    n_raw = _n_hat(R_phi, k_bar, ALPHA)
-    n_hat = int(math.ceil(n_raw))
+    n_raw_legacy = _n_hat(R_phi, k_bar, ALPHA)           # old structural heuristic
 
     # temporal convergence of the critical-routing set (monotone, first-reach)
     partial = np.cumsum(cand_per_t, axis=0)             # (T, N)
@@ -118,28 +119,29 @@ def estimate() -> NHat:
     for ph in PHI_SWEEP:
         r = int((route >= ph).sum())
         sweep.append({"phi": ph, "R_phi": r, "n_hat": math.ceil(_n_hat(r, k_bar, ALPHA))})
-    n_vals = np.array([s["n_hat"] for s in sweep], dtype=float)
-    ci_low, ci_high = float(n_vals.min()), float(n_vals.max())
-    sigma = max(float(n_vals.std(ddof=1)) if n_vals.size > 1 else 1.0, 1.0)
-
     n_active = res["n_active_per_t"]
-    params = {
-        "view": "operational routing usage (shortest paths)",
-        "alpha": ALPHA, "N": N, "T": T, "M": M, "TM": T * M,
-        "k_bar": k_bar, "n_blocks": N_BLOCKS, "phi": PHI,
-        "R_phi": R_phi,
-        "estimator": "N_hat_3 = |R_phi| * (1/alpha)^(1/k_bar)",
-        "route_stats": {"max": float(route.max()), "mean": float(route.mean()),
-                         "n_used": int((route > 0).sum())},
-        "convergence": {"t_star": t_star, "T": T, "conv_fraction": conv_fraction,
-                         "R_phi_final": int(size_t[-1])},
-        "connectivity": {"full_connectivity_pct": float(100.0 * (n_active == M).mean()),
-                          "mean_active": float(n_active.mean())},
-        "phi_sweep": sweep,
-        "n_hat_raw": n_raw,
-    }
-    return NHat(method="M3", instance=INSTANCE, n_hat=n_hat, n_hat_raw=n_raw,
-                ci_low=ci_low, ci_high=ci_high, sigma=sigma, params=params)
+
+    # --- the estimate itself: gambler-ruin formula on the BBs M3 directs ---
+    genes = sorted(int(u) for u in np.where(route >= PHI)[0])
+    fitness_fn, finfo = make_surrogate_fitness(INSTANCE_PATH)
+    assert finfo["N"] == N, f"candidate-count mismatch: {finfo['N']} vs {N}"
+    return bb_core.estimate_order1(
+        genes, method="M3", instance=INSTANCE,
+        fitness_fn=fitness_fn, N=N,
+        extra_params={
+            "view": "BBs directed by operational routing usage (shortest paths)",
+            "bb_source": "candidates with route(u) >= phi (routing-critical)",
+            "alpha": ALPHA, "T": T, "M": M, "TM": T * M,
+            "k_bar": k_bar, "n_blocks": N_BLOCKS, "phi": PHI,
+            "R_phi": R_phi, "legacy_estimator_n_hat": math.ceil(n_raw_legacy),
+            "route_stats": {"max": float(route.max()), "mean": float(route.mean()),
+                             "n_used": int((route > 0).sum())},
+            "convergence": {"t_star": t_star, "T": T, "conv_fraction": conv_fraction,
+                             "R_phi_final": int(size_t[-1])},
+            "connectivity": {"full_connectivity_pct": float(100.0 * (n_active == M).mean()),
+                              "mean_active": float(n_active.mean())},
+            "phi_sweep": sweep,
+        })
 
 
 # ---------------------------------------------------------------------------

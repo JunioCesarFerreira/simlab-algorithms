@@ -8,8 +8,9 @@
 #   3. Method 2  adjacency coverage                -> results/method2/
 #   4. Method 3  routing criticality               -> results/method3/
 #   5. Method 4  MILP calibration                  -> results/method4/
+#   5b. Method 5  gambler-ruin, order-1 blocks      -> results/method5/
 #   6. Combined estimator (3 fusions)              -> results/combined/
-#   7. Copy figures + table into paper/, compile main.tex (if pdflatex present)
+#   7. Copy figures + table into paper/, compile main.tex / artigo_pt.tex
 #
 # Usage:  ./run_all.sh
 set -euo pipefail
@@ -52,18 +53,23 @@ hr "4/7  Method 3 — routing-matrix variant"
 hr "5/7  Method 4 — MILP-based calibration"
 "$PYTHON" -m methods.method4_milp
 
+hr "5b/7  Method 5 — gambler-ruin on order-1 semantic building blocks"
+"$PYTHON" -m methods.method5_building_blocks
+
 hr "6/7  Combined estimator (envelope / weighted / Bayesian)"
 "$PYTHON" -m methods.combined_estimator
 
 hr "7/7  Paper assets + compile"
 "$PYTHON" paper/build_paper_assets.py
 if command -v pdflatex >/dev/null 2>&1; then
-    ( cd "$ROOT/paper" && \
-      pdflatex -interaction=nonstopmode main.tex >/dev/null && \
-      ( bibtex main >/dev/null || true ) && \
-      pdflatex -interaction=nonstopmode main.tex >/dev/null && \
-      pdflatex -interaction=nonstopmode main.tex >/dev/null )
-    echo "  Built paper/main.pdf"
+    for doc in main artigo_pt; do
+      ( cd "$ROOT/paper" && \
+        pdflatex -interaction=nonstopmode "$doc.tex" >/dev/null && \
+        ( bibtex "$doc" >/dev/null || true ) && \
+        pdflatex -interaction=nonstopmode "$doc.tex" >/dev/null && \
+        pdflatex -interaction=nonstopmode "$doc.tex" >/dev/null )
+      echo "  Built paper/$doc.pdf"
+    done
 else
     echo "  pdflatex not found — skipping compile."
     echo "  Upload the paper/ directory to Overleaf, or install TeX Live and re-run."

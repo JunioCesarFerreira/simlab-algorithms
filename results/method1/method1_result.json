@@ -1,19 +1,395 @@
 {
   "method": "M1",
   "instance": "ind2",
-  "n_hat": 22,
-  "n_hat_raw": 21.636662812017885,
-  "ci_low": 15.098490658712116,
-  "ci_high": 73.12388405831491,
-  "sigma": 14.802396275408878,
+  "n_hat": 56,
+  "n_hat_raw": 56.0,
+  "ci_low": 19.0,
+  "ci_high": 56.0,
+  "sigma": 11.097458933073005,
   "params": {
-    "view": "diminishing returns of converged GA fitness vs population size",
+    "estimator": "gambler-ruin order-1:  N_hat = max_u ceil(-ln(alpha) * sigma_BB_u * sqrt(2m) / d_u),  k_u=1",
+    "alpha": 0.05,
+    "rho": 0.5,
+    "num_complements": 60,
+    "N": 64,
+    "n_nominated": 18,
+    "m_blocks": 18,
+    "worst_candidate": 60,
+    "n_per_block": [
+      21,
+      31,
+      35,
+      24,
+      26,
+      24,
+      32,
+      46,
+      50,
+      19,
+      22,
+      32,
+      48,
+      46,
+      35,
+      27,
+      56,
+      33
+    ],
+    "blocks": [
+      {
+        "block_id": 0,
+        "candidate": 0,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.0969400141441215,
+        "sigma_BB_i_hat": 0.11083766947030012,
+        "snr": 1.1433634546980451,
+        "n_i_uniform": 21
+      },
+      {
+        "block_id": 1,
+        "candidate": 2,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.05362029043618848,
+        "sigma_BB_i_hat": 0.09012191438264583,
+        "snr": 1.6807427496107388,
+        "n_i_uniform": 31
+      },
+      {
+        "block_id": 2,
+        "candidate": 3,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.03085209496391912,
+        "sigma_BB_i_hat": 0.05992267407627158,
+        "snr": 1.942256243744546,
+        "n_i_uniform": 35
+      },
+      {
+        "block_id": 3,
+        "candidate": 9,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.08561531159404447,
+        "sigma_BB_i_hat": 0.11077680548628398,
+        "snr": 1.2938901164262047,
+        "n_i_uniform": 24
+      },
+      {
+        "block_id": 4,
+        "candidate": 10,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.060327451898753666,
+        "sigma_BB_i_hat": 0.08618413118412512,
+        "snr": 1.4286055265315396,
+        "n_i_uniform": 26
+      },
+      {
+        "block_id": 5,
+        "candidate": 11,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.06850963636521455,
+        "sigma_BB_i_hat": 0.08945759917113576,
+        "snr": 1.3057666617036292,
+        "n_i_uniform": 24
+      },
+      {
+        "block_id": 6,
+        "candidate": 12,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.023628206873360875,
+        "sigma_BB_i_hat": 0.04192688789504267,
+        "snr": 1.7744422215260125,
+        "n_i_uniform": 32
+      },
+      {
+        "block_id": 7,
+        "candidate": 21,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.022482200370333733,
+        "sigma_BB_i_hat": 0.05634140193710062,
+        "snr": 2.50604482697546,
+        "n_i_uniform": 46
+      },
+      {
+        "block_id": 8,
+        "candidate": 26,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.010668966700927606,
+        "sigma_BB_i_hat": 0.029608184540083782,
+        "snr": 2.7751688959259306,
+        "n_i_uniform": 50
+      },
+      {
+        "block_id": 9,
+        "candidate": 30,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.15559253216944235,
+        "sigma_BB_i_hat": 0.15607415610640174,
+        "snr": 1.003095418078516,
+        "n_i_uniform": 19
+      },
+      {
+        "block_id": 10,
+        "candidate": 31,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.17094202010303464,
+        "sigma_BB_i_hat": 0.20497606787635603,
+        "snr": 1.1990970257213966,
+        "n_i_uniform": 22
+      },
+      {
+        "block_id": 11,
+        "candidate": 38,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.0633374784805235,
+        "sigma_BB_i_hat": 0.11118910646539502,
+        "snr": 1.7555025734026666,
+        "n_i_uniform": 32
+      },
+      {
+        "block_id": 12,
+        "candidate": 46,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.012304980826242868,
+        "sigma_BB_i_hat": 0.032370129734489765,
+        "snr": 2.6306525943911994,
+        "n_i_uniform": 48
+      },
+      {
+        "block_id": 13,
+        "candidate": 48,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.01744839536495686,
+        "sigma_BB_i_hat": 0.04421173502825522,
+        "snr": 2.533856787601771,
+        "n_i_uniform": 46
+      },
+      {
+        "block_id": 14,
+        "candidate": 49,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.03348466840201098,
+        "sigma_BB_i_hat": 0.06482694201806903,
+        "snr": 1.9360186351487276,
+        "n_i_uniform": 35
+      },
+      {
+        "block_id": 15,
+        "candidate": 52,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.05634124655730975,
+        "sigma_BB_i_hat": 0.08401651429216714,
+        "snr": 1.4912079413561854,
+        "n_i_uniform": 27
+      },
+      {
+        "block_id": 16,
+        "candidate": 60,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.007579650128186992,
+        "sigma_BB_i_hat": 0.023280446382638605,
+        "snr": 3.071440764272737,
+        "n_i_uniform": 56
+      },
+      {
+        "block_id": 17,
+        "candidate": 61,
+        "k_i": 1,
+        "h_star": 1,
+        "d_i_hat": 0.05379410021162694,
+        "sigma_BB_i_hat": 0.0974993316948091,
+        "snr": 1.812453992375465,
+        "n_i_uniform": 33
+      }
+    ],
+    "measured": [
+      {
+        "candidate": 0,
+        "h_star": 1,
+        "d_i_hat": 0.0969400141441215,
+        "sigma_BB_i_hat": 0.11083766947030012,
+        "se": 0.014309081599697153,
+        "z_score": 6.774719500248933,
+        "binding": true
+      },
+      {
+        "candidate": 2,
+        "h_star": 1,
+        "d_i_hat": 0.05362029043618848,
+        "sigma_BB_i_hat": 0.09012191438264583,
+        "se": 0.011634689117743933,
+        "z_score": 4.60865691326576,
+        "binding": true
+      },
+      {
+        "candidate": 3,
+        "h_star": 1,
+        "d_i_hat": 0.03085209496391912,
+        "sigma_BB_i_hat": 0.05992267407627158,
+        "se": 0.007735983958587158,
+        "z_score": 3.98812809450987,
+        "binding": true
+      },
+      {
+        "candidate": 9,
+        "h_star": 1,
+        "d_i_hat": 0.08561531159404447,
+        "sigma_BB_i_hat": 0.11077680548628398,
+        "se": 0.014301224093147874,
+        "z_score": 5.986572270765634,
+        "binding": true
+      },
+      {
+        "candidate": 10,
+        "h_star": 1,
+        "d_i_hat": 0.060327451898753666,
+        "sigma_BB_i_hat": 0.08618413118412512,
+        "se": 0.011126323492782395,
+        "z_score": 5.422047268164355,
+        "binding": true
+      },
+      {
+        "candidate": 11,
+        "h_star": 1,
+        "d_i_hat": 0.06850963636521455,
+        "sigma_BB_i_hat": 0.08945759917113576,
+        "se": 0.011548926392716907,
+        "z_score": 5.932121656643231,
+        "binding": true
+      },
+      {
+        "candidate": 12,
+        "h_star": 1,
+        "d_i_hat": 0.023628206873360875,
+        "sigma_BB_i_hat": 0.04192688789504267,
+        "se": 0.005412737952526853,
+        "z_score": 4.365296654040015,
+        "binding": true
+      },
+      {
+        "candidate": 21,
+        "h_star": 1,
+        "d_i_hat": 0.022482200370333733,
+        "sigma_BB_i_hat": 0.05634140193710062,
+        "se": 0.007273643713478966,
+        "z_score": 3.0909130631008805,
+        "binding": true
+      },
+      {
+        "candidate": 26,
+        "h_star": 1,
+        "d_i_hat": 0.010668966700927606,
+        "sigma_BB_i_hat": 0.029608184540083782,
+        "se": 0.0038224001878393466,
+        "z_score": 2.7911694685632473,
+        "binding": true
+      },
+      {
+        "candidate": 30,
+        "h_star": 1,
+        "d_i_hat": 0.15559253216944235,
+        "sigma_BB_i_hat": 0.15607415610640174,
+        "se": 0.02014908691244902,
+        "z_score": 7.722063676905886,
+        "binding": true
+      },
+      {
+        "candidate": 31,
+        "h_star": 1,
+        "d_i_hat": 0.17094202010303464,
+        "sigma_BB_i_hat": 0.20497606787635603,
+        "se": 0.02646229657520693,
+        "z_score": 6.459833129645812,
+        "binding": true
+      },
+      {
+        "candidate": 38,
+        "h_star": 1,
+        "d_i_hat": 0.0633374784805235,
+        "sigma_BB_i_hat": 0.11118910646539502,
+        "se": 0.014354451920671944,
+        "z_score": 4.412392673057114,
+        "binding": true
+      },
+      {
+        "candidate": 46,
+        "h_star": 1,
+        "d_i_hat": 0.012304980826242868,
+        "sigma_BB_i_hat": 0.032370129734489765,
+        "se": 0.004178965779208412,
+        "z_score": 2.9445038500826635,
+        "binding": true
+      },
+      {
+        "candidate": 48,
+        "h_star": 1,
+        "d_i_hat": 0.01744839536495686,
+        "sigma_BB_i_hat": 0.04421173502825522,
+        "se": 0.005707710449045585,
+        "z_score": 3.0569867761730087,
+        "binding": true
+      },
+      {
+        "candidate": 49,
+        "h_star": 1,
+        "d_i_hat": 0.03348466840201098,
+        "sigma_BB_i_hat": 0.06482694201806903,
+        "se": 0.008369122227384507,
+        "z_score": 4.00097734173916,
+        "binding": true
+      },
+      {
+        "candidate": 52,
+        "h_star": 1,
+        "d_i_hat": 0.05634124655730975,
+        "sigma_BB_i_hat": 0.08401651429216714,
+        "se": 0.010846485355332025,
+        "z_score": 5.1944242500279545,
+        "binding": true
+      },
+      {
+        "candidate": 60,
+        "h_star": 1,
+        "d_i_hat": 0.007579650128186992,
+        "sigma_BB_i_hat": 0.023280446382638605,
+        "se": 0.0030054927044078006,
+        "z_score": 2.521932632566639,
+        "binding": true
+      },
+      {
+        "candidate": 61,
+        "h_star": 1,
+        "d_i_hat": 0.05379410021162694,
+        "sigma_BB_i_hat": 0.0974993316948091,
+        "se": 0.012587109597344952,
+        "z_score": 4.273745278500947,
+        "binding": true
+      }
+    ],
+    "view": "BBs directed by GA search dynamics (converged elite genes)",
+    "bb_source": "genes ON in >= ELITE_FREQ of the top-ELITE_Q fitness elite",
     "eps_rel": 0.05,
     "fit_model": "F*(n) = F_inf - A*exp(-n/tau)",
     "F_inf": 0.9696394593473755,
     "A": 0.012653058766428296,
     "tau": 7.222495482331338,
     "rss": 1.6344235989934416e-06,
+    "diminishing_returns_n95": 21.636662812017885,
     "pop_sizes": [
       4.0,
       8.0,
@@ -54,6 +430,29 @@
       "n_hat_bernoulli": 2839,
       "note": "worst-case gambler-ruin bound; conservative relative to N_hat_1"
     },
-    "n_hat_raw": 21.636662812017885
+    "elite": {
+      "elite_size": 827,
+      "elite_freq_threshold": 0.8,
+      "gene_on_freq": {
+        "0": 0.9818621523579202,
+        "2": 0.9625151148730351,
+        "3": 0.9987908101571947,
+        "9": 0.9854897218863361,
+        "10": 0.9105199516324063,
+        "11": 0.992744860943168,
+        "12": 0.9987908101571947,
+        "21": 0.9758162031438936,
+        "26": 1.0,
+        "30": 1.0,
+        "31": 1.0,
+        "38": 0.9564691656590084,
+        "46": 0.9975816203143894,
+        "48": 0.9806529625151149,
+        "49": 0.9975816203143894,
+        "52": 1.0,
+        "60": 1.0,
+        "61": 0.9794437726723095
+      }
+    }
   }
 }

@@ -56,6 +56,7 @@ from pathlib import Path
 
 import numpy as np
 
+from methods import bb_core
 from methods.common import (
     GA_RUNS_DIR, INSTANCE_PATH, MILP_SUMMARY_PATH, RESULTS_DIR, NHat,
     ensure_dir, fit_saturating_exponential, get_plt, load_json,
@@ -85,7 +86,7 @@ def _milp_reference() -> dict:
     fitness_fn, info = make_surrogate_fitness(INSTANCE_PATH)
     records = load_json(MILP_SUMMARY_PATH)
     scored = []
-    optimal_relays = []
+    optimal = []                       # (installed, bits) for OPTIMAL solves
     for r in records:
         chrom = r.get("chromosome")
         if not chrom:
@@ -100,16 +101,20 @@ def _milp_reference() -> dict:
             "status": r.get("status_name"),
         })
         if r.get("status_name") == "OPTIMAL" and r.get("installed_nodes"):
-            optimal_relays.append(int(r["installed_nodes"]))
+            optimal.append((int(r["installed_nodes"]), bits))
 
-    r_opt = min(optimal_relays) if optimal_relays else min(
-        s["milp_installed"] for s in scored if s["milp_installed"])
+    if optimal:
+        r_opt, opt_bits = min(optimal, key=lambda t: t[0])
+    else:
+        r_opt = min(s["milp_installed"] for s in scored if s["milp_installed"])
+        opt_bits = None
     f_ref = max(s["surrogate_F"] for s in scored)
     n_feasible = sum(1 for s in scored if s["surrogate_conn"] >= CONN_FEASIBLE)
     return {
         "r_opt": int(r_opt), "f_ref": float(f_ref),
         "n_milp": len(scored), "n_feasible": n_feasible,
         "ref_source": "min installed_nodes among OPTIMAL MILP solves",
+        "opt_genes": sorted(int(u) for u in np.where(opt_bits == 1)[0]) if opt_bits is not None else [],
         "scored": scored,
     }
 
@@ -144,55 +149,34 @@ def estimate() -> NHat:
     mean_relays = np.array([a.mean() for a in per_seed_relays])
     gap = (mean_relays - r_opt) / r_opt                       # eq. (2)
 
+    # legacy gap calibration — kept as the BB-directing diagnostic / context
     fit = fit_saturating_exponential(sizes, gap, increasing=False)
-    n_raw = _solve_n4(fit, TAU_GAP)
-    if not np.isfinite(n_raw):
-        n_hat = int(sizes.max())
-        unreachable = True
-    else:
-        n_raw = max(n_raw, float(sizes.min()))
-        n_hat = int(math.ceil(n_raw))
-        unreachable = False
+    n_legacy = _solve_n4(fit, TAU_GAP)
+    n_legacy = int(math.ceil(max(n_legacy, float(sizes.min())))) if np.isfinite(n_legacy) else None
 
-    # bootstrap over seeds
-    rng = np.random.default_rng(0)
-    boots = []
-    for _ in range(1000):
-        bm = []
-        for a in per_seed_relays:
-            idx = rng.integers(0, len(a), size=len(a))
-            bm.append(a[idx].mean())
-        g = (np.array(bm) - r_opt) / r_opt
-        try:
-            f = fit_saturating_exponential(sizes, g, increasing=False)
-            v = _solve_n4(f, TAU_GAP)
-            if np.isfinite(v):
-                boots.append(max(v, float(sizes.min())))
-        except Exception:
-            pass
-    boots = np.array(boots)
-    if boots.size:
-        ci_low, ci_high = float(np.percentile(boots, 2.5)), float(np.percentile(boots, 97.5))
-    else:
-        ci_low = ci_high = float(n_raw if np.isfinite(n_raw) else n_hat)
-    sigma = max((ci_high - ci_low) / (2 * 1.96), 1.0)
-
-    params = {
-        "view": "GA solution-quality gap vs MILP reference optimum",
-        "tau_gap": TAU_GAP,
-        "r_opt": r_opt, "f_ref": ref["f_ref"], "ref_source": ref["ref_source"],
-        "n_milp_scored": ref["n_milp"], "n_milp_feasible": ref["n_feasible"],
-        "fit_model": "gap(n) = g_inf + G*exp(-n/tau)",
-        "g_inf": fit["y_inf"], "G": fit["amp"], "tau": fit["tau"], "rss": fit["rss"],
-        "pop_sizes": sizes.tolist(),
-        "mean_relays_per_size": mean_relays.tolist(),
-        "gap_per_size": gap.tolist(),
-        "target_reachable": not unreachable,
-        "n_hat_raw": n_raw if np.isfinite(n_raw) else None,
-    }
-    return NHat(method="M4", instance=INSTANCE, n_hat=n_hat,
-                n_hat_raw=float(n_raw) if np.isfinite(n_raw) else float(n_hat),
-                ci_low=ci_low, ci_high=ci_high, sigma=sigma, params=params)
+    # --- the estimate itself: gambler-ruin formula on the BBs M4 directs ---
+    # The MILP optimum installs exactly the genes that an exact solver deems
+    # correct; each installed relay is a must-keep order-1 building block, with
+    # H_u^* = ON (the MILP allele).
+    genes = ref["opt_genes"]
+    fitness_fn, finfo = make_surrogate_fitness(INSTANCE_PATH)
+    h_star = {u: 1 for u in genes}
+    return bb_core.estimate_order1(
+        genes, method="M4", instance=INSTANCE,
+        fitness_fn=fitness_fn, N=finfo["N"], h_star=h_star,
+        extra_params={
+            "view": "BBs directed by the exact MILP optimum (installed genes)",
+            "bb_source": "genes installed in the min-relay OPTIMAL MILP solution",
+            "tau_gap": TAU_GAP,
+            "r_opt": r_opt, "f_ref": ref["f_ref"], "ref_source": ref["ref_source"],
+            "n_milp_scored": ref["n_milp"], "n_milp_feasible": ref["n_feasible"],
+            "fit_model": "gap(n) = g_inf + G*exp(-n/tau)",
+            "g_inf": fit["y_inf"], "G": fit["amp"], "tau": fit["tau"], "rss": fit["rss"],
+            "pop_sizes": sizes.tolist(),
+            "mean_relays_per_size": mean_relays.tolist(),
+            "gap_per_size": gap.tolist(),
+            "legacy_estimator_n_hat": n_legacy,
+        })
 
 
 # ---------------------------------------------------------------------------
@@ -246,12 +230,10 @@ def main() -> int:
     print(f"  fit: g_inf={p['g_inf']:.4f}  G={p['G']:.4f}  tau={p['tau']:.2f}  (rss={p['rss']:.2e})")
     print(f"  gap per size: " + "  ".join(f"n{int(n)}={100*g:.0f}%"
           for n, g in zip(p['pop_sizes'], p['gap_per_size'])))
-    if p["target_reachable"]:
-        print(f"  N_hat_4 = {res.n_hat}  (raw {res.n_hat_raw:.1f}, 95% CI [{res.ci_low:.0f}, {res.ci_high:.0f}])  "
-              f"for {100*p['tau_gap']:.0f}% gap")
-    else:
-        print(f"  target {100*p['tau_gap']:.0f}% gap below achievable floor "
-              f"(g_inf={100*p['g_inf']:.1f}%); reporting n={res.n_hat}")
+    print(f"  BB source: {len(p['blocks'])} binding genes from the MILP optimum "
+          f"(legacy gap-calibration n={p['legacy_estimator_n_hat']})")
+    print(f"  N_hat_4 (gambler-ruin) = {res.n_hat}  (95% range [{res.ci_low:.0f}, {res.ci_high:.0f}], "
+          f"worst gene {p['worst_candidate']})")
     print(f"  -> {METHOD_DIR}/method4_result.json (+ 2 figures)")
     return 0
 

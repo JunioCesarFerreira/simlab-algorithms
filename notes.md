@@ -1,0 +1,2 @@
+- No lugar da função ponderada F, fazer o computo do \Delta para cada objetivo.
+- 

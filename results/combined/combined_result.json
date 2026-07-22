@@ -4,73 +4,83 @@
     {
       "method": "M1",
       "label": "M1 inference (diminishing returns)",
-      "n_hat": 22.0,
-      "n_hat_raw": 21.636662812017885,
-      "ci_low": 15.098490658712116,
-      "ci_high": 73.12388405831491,
-      "sigma": 14.802396275408878,
-      "weight": 0.12372280940495034
+      "n_hat": 56.0,
+      "n_hat_raw": 56.0,
+      "ci_low": 19.0,
+      "ci_high": 56.0,
+      "sigma": 11.097458933073005,
+      "weight": 0.12437288648386999
     },
     {
       "method": "M2",
       "label": "M2 adjacency coverage",
-      "n_hat": 24.0,
-      "n_hat_raw": 23.26744693518326,
-      "ci_low": 9.0,
-      "ci_high": 53.0,
-      "sigma": 14.552204873030984,
-      "weight": 0.12801363376685365
+      "n_hat": 51.0,
+      "n_hat_raw": 51.0,
+      "ci_low": 12.0,
+      "ci_high": 51.0,
+      "sigma": 12.48287716122458,
+      "weight": 0.09829771289437939
     },
     {
       "method": "M3",
       "label": "M3 routing criticality",
-      "n_hat": 14.0,
-      "n_hat_raw": 13.087938901040584,
-      "ci_low": 6.0,
-      "ci_high": 27.0,
-      "sigma": 7.467708260682569,
-      "weight": 0.486115131692063
+      "n_hat": 26.0,
+      "n_hat_raw": 26.0,
+      "ci_low": 13.0,
+      "ci_high": 26.0,
+      "sigma": 4.719934086168766,
+      "weight": 0.6875447010627315
     },
     {
       "method": "M4",
       "label": "M4 MILP calibration",
-      "n_hat": 48.0,
-      "n_hat_raw": 47.27480546535737,
-      "ci_low": 31.985322966064253,
-      "ci_high": 71.84826550363157,
-      "sigma": 10.169117994277377,
-      "weight": 0.26214842513613296
+      "n_hat": 73.0,
+      "n_hat_raw": 73.0,
+      "ci_low": 16.0,
+      "ci_high": 73.0,
+      "sigma": 19.19878659169393,
+      "weight": 0.04155518733806394
+    },
+    {
+      "method": "M5",
+      "label": "M5 gambler-ruin (order-1 blocks)",
+      "n_hat": 75.0,
+      "n_hat_raw": 75.0,
+      "ci_low": 18.0,
+      "ci_high": 75.0,
+      "sigma": 17.820913762213806,
+      "weight": 0.04822951222095514
     }
   ],
   "combined": {
     "conservative_envelope": {
-      "n_hat": 48,
+      "n_hat": 75,
       "formula": "max_i N_hat_i"
     },
     "weighted_average": {
-      "n_hat": 25,
-      "n_hat_raw": 24.41076008371822,
-      "sigma": 5.206632357934835,
-      "ci_low": 14.205760662165945,
-      "ci_high": 34.615759505270496,
+      "n_hat": 37,
+      "n_hat_raw": 36.50496932059139,
+      "sigma": 3.9136898270767686,
+      "ci_low": 28.834137259520926,
+      "ci_high": 44.175801381661856,
       "formula": "sum(w_i N_i)/sum(w_i),  w_i=1/sigma_i^2"
     },
     "bayesian_fusion": {
-      "n_hat": 25,
-      "mu_post": 24.436605883694515,
-      "sigma_post": 5.171209428710512,
-      "ci_low": 14.301035403421912,
-      "ci_high": 34.57217636396712,
-      "prior_mu": 26.316713528399774,
-      "prior_sigma": 44.40718882622663,
+      "n_hat": 37,
+      "mu_post": 36.58974049956768,
+      "sigma_post": 3.9052581095815553,
+      "ci_low": 28.935434604787833,
+      "ci_high": 44.24404639434753,
+      "prior_mu": 56.2,
+      "prior_sigma": 59.52562473422685,
       "model": "gaussian",
       "formula": "Gaussian conjugate posterior (eqs. 4-6)"
     }
   },
   "model_selection": {
-    "empirical_mean": 26.316713528399774,
-    "empirical_var": 215.14766574794734,
-    "dispersion_var_over_mean": 8.17532422943959,
+    "empirical_mean": 56.2,
+    "empirical_var": 393.7,
+    "dispersion_var_over_mean": 7.005338078291814,
     "chosen": "gaussian",
     "reason": "over-dispersed (Var >> mean) -> Gaussian"
   }

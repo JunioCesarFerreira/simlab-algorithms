@@ -1,0 +1,283 @@
+{
+  "method": "M5",
+  "instance": "ind2",
+  "n_hat": 75,
+  "n_hat_raw": 75.0,
+  "ci_low": 18.0,
+  "ci_high": 75.0,
+  "sigma": 17.820913762213806,
+  "params": {
+    "view": "gambler-ruin closed form on ORDER-1 semantic P2 building blocks",
+    "estimator": "N_hat_5 = max_u ceil(-ln(alpha) * sigma_BB_u * sqrt(2m) / d_u),  k_u=1",
+    "block_definition": "each indispensable candidate (cov>=theta*TM OR route>=phi) is one order-1 building block (must-keep gene)",
+    "alpha": 0.05,
+    "rho": 0.5,
+    "theta_fraction": 0.1,
+    "phi": 0.05,
+    "num_complements": 60,
+    "N": 64,
+    "T": 181,
+    "M": 4,
+    "n_critical": 22,
+    "m_blocks": 18,
+    "worst_candidate": 13,
+    "n_per_block": [
+      21,
+      32,
+      25,
+      36,
+      28,
+      18,
+      32,
+      75,
+      65,
+      60,
+      56,
+      52,
+      32,
+      23,
+      21,
+      54,
+      31,
+      60
+    ],
+    "blocks": [
+      {
+        "block_id": 0,
+        "candidate": 0,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.0969400141441215,
+        "sigma_BB_i_hat": 0.11083766947030012,
+        "cov": 38,
+        "route": 0.27348066298342544,
+        "snr": 1.1433634546980451,
+        "n_i_uniform": 21
+      },
+      {
+        "block_id": 1,
+        "candidate": 4,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.06915706519841093,
+        "sigma_BB_i_hat": 0.12260900090354242,
+        "cov": 31,
+        "route": 0.0856353591160221,
+        "snr": 1.7729063625210009,
+        "n_i_uniform": 32
+      },
+      {
+        "block_id": 2,
+        "candidate": 5,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.1457546135435968,
+        "sigma_BB_i_hat": 0.20012649986348202,
+        "cov": 23,
+        "route": 0.44613259668508287,
+        "snr": 1.3730371546944,
+        "n_i_uniform": 25
+      },
+      {
+        "block_id": 3,
+        "candidate": 6,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.05734766909638474,
+        "sigma_BB_i_hat": 0.11435656676647483,
+        "cov": 39,
+        "route": 0.058011049723756904,
+        "snr": 1.994092673135062,
+        "n_i_uniform": 36
+      },
+      {
+        "block_id": 4,
+        "candidate": 8,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.10594489498404326,
+        "sigma_BB_i_hat": 0.16297067530225284,
+        "cov": 34,
+        "route": 0.09944751381215469,
+        "snr": 1.5382588781346986,
+        "n_i_uniform": 28
+      },
+      {
+        "block_id": 5,
+        "candidate": 9,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.0769540519706753,
+        "sigma_BB_i_hat": 0.07497759978042742,
+        "cov": 57,
+        "route": 0.21823204419889503,
+        "snr": 0.9743164636606655,
+        "n_i_uniform": 18
+      },
+      {
+        "block_id": 6,
+        "candidate": 12,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.023628206873360875,
+        "sigma_BB_i_hat": 0.04192688789504267,
+        "cov": 153,
+        "route": 0.19475138121546962,
+        "snr": 1.7744422215260125,
+        "n_i_uniform": 32
+      },
+      {
+        "block_id": 7,
+        "candidate": 13,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.00629178434425395,
+        "sigma_BB_i_hat": 0.026216099229143457,
+        "cov": 130,
+        "route": 0.026243093922651933,
+        "snr": 4.166719295311772,
+        "n_i_uniform": 75
+      },
+      {
+        "block_id": 8,
+        "candidate": 14,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.014543027879840588,
+        "sigma_BB_i_hat": 0.05223246184139161,
+        "cov": 143,
+        "route": 0.0,
+        "snr": 3.591580946757021,
+        "n_i_uniform": 65
+      },
+      {
+        "block_id": 9,
+        "candidate": 15,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.009530369309731663,
+        "sigma_BB_i_hat": 0.03143363334586562,
+        "cov": 124,
+        "route": 0.0,
+        "snr": 3.298259734149869,
+        "n_i_uniform": 60
+      },
+      {
+        "block_id": 10,
+        "candidate": 22,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.007072719275002596,
+        "sigma_BB_i_hat": 0.021887607570813896,
+        "cov": 152,
+        "route": 0.0,
+        "snr": 3.0946523847160416,
+        "n_i_uniform": 56
+      },
+      {
+        "block_id": 11,
+        "candidate": 26,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.013629403439120467,
+        "sigma_BB_i_hat": 0.038777893690282235,
+        "cov": 240,
+        "route": 0.0,
+        "snr": 2.845164417026359,
+        "n_i_uniform": 52
+      },
+      {
+        "block_id": 12,
+        "candidate": 27,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.014933402540949986,
+        "sigma_BB_i_hat": 0.026354083863791476,
+        "cov": 100,
+        "route": 0.017955801104972375,
+        "snr": 1.7647742228553738,
+        "n_i_uniform": 32
+      },
+      {
+        "block_id": 13,
+        "candidate": 28,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.06043609215293262,
+        "sigma_BB_i_hat": 0.07682627247518466,
+        "cov": 267,
+        "route": 0.18646408839779005,
+        "snr": 1.2711985460737092,
+        "n_i_uniform": 23
+      },
+      {
+        "block_id": 14,
+        "candidate": 30,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.13559192407384474,
+        "sigma_BB_i_hat": 0.15271243157090522,
+        "cov": 125,
+        "route": 0.31353591160220995,
+        "snr": 1.1262649498781099,
+        "n_i_uniform": 21
+      },
+      {
+        "block_id": 15,
+        "candidate": 36,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.01753290933630155,
+        "sigma_BB_i_hat": 0.05189173130841033,
+        "cov": 137,
+        "route": 0.0,
+        "snr": 2.959676019140161,
+        "n_i_uniform": 54
+      },
+      {
+        "block_id": 16,
+        "candidate": 52,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.04516523902465328,
+        "sigma_BB_i_hat": 0.07615821788209984,
+        "cov": 127,
+        "route": 0.004143646408839779,
+        "snr": 1.6862131038546957,
+        "n_i_uniform": 31
+      },
+      {
+        "block_id": 17,
+        "candidate": 60,
+        "k_i": 1,
+        "s_star": 1,
+        "d_i_hat": 0.006358024775948475,
+        "sigma_BB_i_hat": 0.02090081778795839,
+        "cov": 151,
+        "route": 0.006906077348066298,
+        "snr": 3.28731304524375,
+        "n_i_uniform": 60
+      }
+    ],
+    "order_sensitivity": {
+      "note": "same signal/noise, but treating each connectivity component as one order-k Trap block -> 2^{k-1} blow-up (artefact)",
+      "components": [
+        {
+          "component_id": 0,
+          "k": 12,
+          "n_if_treated_as_order_k": 62619
+        },
+        {
+          "component_id": 1,
+          "k": 1,
+          "n_if_treated_as_order_k": 14
+        },
+        {
+          "component_id": 2,
+          "k": 9,
+          "n_if_treated_as_order_k": 5814
+        }
+      ]
+    }
+  }
+}

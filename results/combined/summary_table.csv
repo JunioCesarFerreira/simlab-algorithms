@@ -1,8 +1,9 @@
 estimator,n_hat,n_hat_raw,ci_low,ci_high,sigma,weight
-M1 inference (diminishing returns),22,21.64,15.1,73.1,14.8,0.1237
-M2 adjacency coverage,24,23.27,9.0,53.0,14.55,0.128
-M3 routing criticality,14,13.09,6.0,27.0,7.47,0.4861
-M4 MILP calibration,48,47.27,32.0,71.8,10.17,0.2621
-COMBINED conservative envelope,48,,,,,
-COMBINED weighted average,25,24.41,14.2,34.6,5.21,
-COMBINED Bayesian fusion,25,24.44,14.3,34.6,5.17,
+M1 inference (diminishing returns),56,56.0,19.0,56.0,11.1,0.1244
+M2 adjacency coverage,51,51.0,12.0,51.0,12.48,0.0983
+M3 routing criticality,26,26.0,13.0,26.0,4.72,0.6875
+M4 MILP calibration,73,73.0,16.0,73.0,19.2,0.0416
+M5 gambler-ruin (order-1 blocks),75,75.0,18.0,75.0,17.82,0.0482
+COMBINED conservative envelope,75,,,,,
+COMBINED weighted average,37,36.5,28.8,44.2,3.91,
+COMBINED Bayesian fusion,37,36.59,28.9,44.2,3.91,

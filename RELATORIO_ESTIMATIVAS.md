@@ -147,3 +147,26 @@ são exatamente a "mudança de rota" em relação ao gambler-ruin que já estava
 regiões críticas de cobertura/roteamento como blocos, em vez de grade arbitrária), recomputar $\widehat d_i$
 e $\widehat\sigma_{BB,i}$ por bloco e aplicar a fórmula — possivelmente investigando por que $2^{k-1}$ infla
 tanto (blocos grandes, $k=9$) e se uma definição de bloco mais justa reduz o 2839 para a faixa estrutural.
+
+---
+
+## 6. Resolução (implementada)
+
+A proposta foi recolocada como estimador comparável — **Método 5**
+([methods/method5_building_blocks.py](methods/method5_building_blocks.py)). Resultado:
+
+- **Definição de bloco construtivo em P2:** *ordem 1*. Cada candidato indispensável (crítico por cobertura
+  $\cov\ge\theta TM$ **ou** por roteamento $\route\ge\phi$) é um bloco $\{u\}$ que deve permanecer ligado.
+  P2 **não tem** engano Trap-$k$; sua dificuldade são muitos genes obrigatórios espalhados, não um bloco
+  grande. Filtro de significância (teste unilateral 95%) descarta genes substituíveis ($d\approx 0$).
+- **Mesma fórmula, ordem correta:** com $k_u=1$, $2^{k-1}=1$ e
+  $\widehat n_u = -\ln(\alpha)\,\widehat\sigma_{BB,u}\sqrt{2m}/\widehat d_u$. Sobre $m=18$ blocos vinculantes
+  (de 22 críticos): **$\widehat N_5 = 75$**, faixa $[18,75]$ — **mesma ordem de grandeza** de M1–M4.
+- **Reconciliação:** o **2839** (grade) e o blow-up de componentes ($k{=}12\Rightarrow 6{,}3\times10^4$) são
+  artefatos do $2^{k-1}$ sob ordem incorreta — não do sinal/ruído. A discrepância de ~100× era a hipótese de
+  bloco, não a fórmula.
+- **Fusão com 5 métodos:** média ponderada **29** (IC [19,38]), envelope conservador **75**.
+
+O novo artigo em português, com o devido rigor matemático (dedução da ruína do jogador, definição de bloco,
+os cinco métodos e a fusão), está em [paper/artigo_pt.tex](paper/artigo_pt.tex). Pipeline reprodutível
+atualizado em [run_all.sh](run_all.sh) (passo 5b).

@@ -1,0 +1,475 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
+
+% figuras vivem em results/<metodo>/
+\graphicspath{%
+  {../results/method1/}{../results/method2/}{../results/method3/}%
+  {../results/method4/}{../results/method5/}{../results/combined/}}
+
+\newcommand{\Nhat}{\hat{N}}
+\newcommand{\cov}{\operatorname{cov}}
+\newcommand{\route}{\operatorname{route}}
+
+% rodapé de resultado padronizado dos slides de método
+\newcommand{\bbfooter}[1]{\vfill\centering\footnotesize\colorbox{structure!15}{#1}}
+
+\title[Dimensionamento de População em AGs]{Dimensionamento da População de
+Algoritmos Genéticos para Posicionamento de Relés}
+\subtitle{Uma fórmula de ruína do jogador, cinco fontes de blocos construtivos}
+\author{Estudo SimLab Algorithms}
+\institute{Otimização de Redes de Sensores sem Fio --- \texttt{simlab-algorithms}}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}\titlepage\end{frame}
+
+\begin{frame}{Roteiro}\tableofcontents\end{frame}
+
+% ======================================================================
+\section{Problema e objetivo}
+% ======================================================================
+\begin{frame}{O problema P2}
+\textbf{Posicionamento de relés em RSSF móvel.}
+\begin{itemize}
+  \item Região $\Omega\subset\mathbb{R}^2$, sorvedouro $s$, $N$ candidatos $Q$,
+        $M$ sensores móveis, raio de alcance $R$.
+  \item \textbf{P2:} menor $P\subseteq Q$ tal que, em todo instante $t$, cada móvel
+        alcance $s$ por uma cadeia de relés instalados dentro do alcance.
+  \item \textbf{Cromossomo:} $x\in\{0,1\}^N$, $x_j=1$ se o candidato $j$ é instalado.
+  \item \textbf{Aptidão substituta} $F(x)$: conectividade $-$ penalidades (relés,
+        saltos, distância, redundância). Maior é melhor.
+\end{itemize}
+\vfill
+\begin{block}{Pergunta de dimensionamento}
+Dado $1-\alpha$, qual o \emph{menor} tamanho de população $\Nhat$ para o AG achar
+uma boa solução com probabilidade $\ge 1-\alpha$?
+\end{block}
+\end{frame}
+
+% ======================================================================
+\section{A fórmula de ruína do jogador}
+% ======================================================================
+\begin{frame}{O estimador: ruína do jogador (Harik et al.)}
+\[
+\boxed{\;\widehat{n}_u \;=\; -\ln(\alpha)\,2^{k_u-1}\,
+\frac{\widehat{\sigma}_{BB,u}\sqrt{2m}}{\widehat{d}_u}\;}
+\qquad \Nhat=\max_u\lceil \widehat n_u\rceil
+\]
+\vfill
+\begin{columns}[T]
+\column{0.5\textwidth}
+\small
+\begin{tabular}{ll}
+\toprule
+$\alpha$ & prob.\ de perder o bloco ($0{,}05$)\\
+$k_u$ & ordem do bloco\\
+$m$ & nº de blocos\\
+$\widehat\sigma_{BB,u}$ & ruído do bloco\\
+$\widehat d_u$ & sinal (vantagem do bloco correto)\\
+\bottomrule
+\end{tabular}
+\column{0.5\textwidth}
+\small
+\textbf{Sinal e ruído} por diferenças entre amostras:
+\[
+\Delta_u^{(r)} = F(H_u^*,x_{-u}^{(r)})-F(H_u^L,x_{-u}^{(r)})
+\]
+\[
+\widehat d_u=\overline{\Delta_u},\quad
+\widehat\sigma_{BB,u}=\mathrm{sd}(\Delta_u)
+\]
+com $x_{-u}\sim\mathrm{Bernoulli}(0{,}5)$, $R=60$.
+\end{columns}
+\end{frame}
+
+\begin{frame}{O ponto crítico: a \emph{ordem} do bloco}
+\begin{itemize}
+  \item O fator $2^{k-1}$ \alert{dobra a cada bit} do bloco.
+  \item Blocos de grade arbitrária ($k$ até 9) $\Rightarrow$ $\Nhat=\mathbf{2839}$.
+  \item Componentes conexas ($k=12$) $\Rightarrow$ $\sim\!6\times10^4$.
+\end{itemize}
+\vfill
+\begin{alertblock}{P2 não tem engano do tipo Trap-$k$}
+Uma região de relés admite \emph{muitas} coberturas aceitáveis. Sua dificuldade são
+\textbf{muitos genes indispensáveis isolados}, não um bloco grande.
+$\Rightarrow$ \textbf{blocos de ordem 1} ($k_u=1$, logo $2^{0}=1$).
+\end{alertblock}
+\vfill
+\centering
+Cada candidato indispensável $u$ é um bloco $\{u\}$: $H_u^*$ = ligado,
+$H_u^L$ = desligado. Mantém-se $u$ só se o sinal é significativo
+($\widehat d_u>1{,}645\,\widehat\sigma_{BB,u}/\sqrt R$).
+\end{frame}
+
+% ======================================================================
+\section{Os cinco métodos como fontes de BB}
+% ======================================================================
+\begin{frame}{Uma fórmula, cinco fontes de blocos construtivos}
+\centering
+A fórmula é o \textbf{único estimador}. Cada método apenas \textbf{direciona os BBs}:
+qual conjunto de genes é bloco e qual é o alelo correto $H_u^*$.
+\vfill
+\footnotesize
+\begin{tabular}{lll}
+\toprule
+Método & Sinal / visão & Regra de BB (gene\_set)\\
+\midrule
+\textbf{M1} inferência & dinâmica da busca do AG & genes nas elites do AG\\
+\textbf{M2} adjacência & alcançabilidade geométrica & $\cov(u)\ge\theta TM$\\
+\textbf{M3} roteamento & uso operacional (caminhos) & $\route(u)\ge\phi$\\
+\textbf{M4} MILP & ótimo exato & genes do ótimo MILP\\
+\textbf{M5} união & evidências combinadas & $\cov\ge\theta TM \ \vee\ \route\ge\phi$\\
+\bottomrule
+\end{tabular}
+\vfill
+\normalsize
+Sinal/ruído e fórmula \emph{idênticos}; muda só \emph{quais} genes cada fonte
+aponta. Núcleo único: \texttt{methods/bb\_core.py}.
+\end{frame}
+
+% ---------------------------------------------------------------- M1
+\begin{frame}{M1 --- Inferência: BBs pela dinâmica do AG}
+\begin{columns}[T]
+\column{0.56\textwidth}
+\small
+\textbf{Sinal:} a qualidade convergida satura,
+$F^*(n)=F_\infty-A\,e^{-n/\tau}$ ($\tau\approx7{,}2$); a busca \emph{decide}
+quais genes manter.
+\medskip
+
+\textbf{Regra de BB:} genes ligados em $\ge\!80\%$ das \emph{elites} (top 5\% por
+$F$ do fluxo de indivíduos avaliados pelo AG).
+\medskip
+
+\textbf{Interpretação:} genes em que \emph{toda} boa solução concorda = os blocos
+para os quais a busca convergiu.
+\medskip
+
+\textbf{$H_u^*$:} ligado \quad($H_u^L$: desligado).
+\column{0.44\textwidth}
+\centering
+\includegraphics[width=\linewidth]{method1_saturation.png}\\
+{\scriptsize Retornos decrescentes da qualidade vs.\ população}
+\end{columns}
+\bbfooter{18 genes nomeados $\;\to\;$ $m=18$ blocos vinculantes $\;\to\;$
+$\Nhat_1=\mathbf{56}$ (pior gene 60)}
+\end{frame}
+
+\begin{frame}{M1 --- cálculo dos termos da fórmula}
+\small
+\begin{columns}[T]
+\column{0.52\textwidth}
+\textbf{Ordem $k_u=1$} (bloco de 1 gene) $\Rightarrow 2^{k_u-1}=2^0=1$.
+\medskip
+
+\textbf{$m$ (blocos vinculantes):} 18 nomeados
+$\xrightarrow{\text{filtro signif.}}$ $m=18$ (nenhum descartado)
+$\Rightarrow \sqrt{2m}=6{,}00$.
+\medskip
+
+\textbf{$\widehat\sigma_{BB,u},\widehat d_u$} ($R=60$ complementos,
+$\Delta_u=F(\text{ON})-F(\text{OFF})$):
+faixa $\widehat\sigma_{BB}\in[0{,}023,\,0{,}205]$,
+$\widehat d\in[0{,}008,\,0{,}171]$.
+\column{0.48\textwidth}
+\textbf{Gene mais exigente} (define $\Nhat$): gene 60,
+$\widehat d=0{,}0076$, $\widehat\sigma_{BB}=0{,}0233$.
+\[
+\widehat n=\frac{-\ln(0{,}05)\cdot 1\cdot \widehat\sigma_{BB}\sqrt{2m}}{\widehat d}
+\]
+\[
+=\frac{2{,}996\cdot 0{,}0233\cdot 6{,}00}{0{,}0076}\approx \mathbf{56}
+\]
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------- M2
+\begin{frame}{M2 --- Adjacência: BBs pela cobertura geométrica}
+\begin{columns}[T]
+\column{0.56\textwidth}
+\small
+\textbf{Sinal:} alcançabilidade. $A(t)[u,v]=1$ se $\lVert p_u-p_v\rVert\le R$;
+cobertura $\cov(u)=\sum_t\sum_m A(t)[u,m]$.
+\medskip
+
+\textbf{Regra de BB:} candidatos \emph{indispensáveis por cobertura},
+$\cov(u)\ge\theta TM$ ($\theta=0{,}10$) $\Rightarrow C_\theta=16$.
+\medskip
+
+\textbf{Interpretação:} relés que ficam em alcance de muitos pares
+(móvel, instante) --- geometricamente necessários.
+\medskip
+
+\textbf{$H_u^*$:} ligado.
+\column{0.44\textwidth}
+\centering
+\includegraphics[width=\linewidth]{method2_spatial.png}\\
+{\scriptsize Candidatos coloridos por $\cov(u)$; estrela = sorvedouro}
+\end{columns}
+\bbfooter{16 genes nomeados $\;\to\;$ $m=10$ blocos vinculantes $\;\to\;$
+$\Nhat_2=\mathbf{51}$ (pior gene 58)}
+\end{frame}
+
+\begin{frame}{M2 --- cálculo dos termos da fórmula}
+\small
+\begin{columns}[T]
+\column{0.52\textwidth}
+\textbf{Ordem $k_u=1$} $\Rightarrow 2^{k_u-1}=1$.
+\medskip
+
+\textbf{$m$ (blocos vinculantes):} 16 nomeados ($C_\theta$)
+$\xrightarrow{\text{filtro signif.}}$ $m=10$ (6 genes substituíveis descartados)
+$\Rightarrow \sqrt{2m}=4{,}47$.
+\medskip
+
+\textbf{$\widehat\sigma_{BB,u},\widehat d_u$} ($R=60$ complementos):
+faixa $\widehat\sigma_{BB}\in[0{,}023,\,0{,}154]$,
+$\widehat d\in[0{,}007,\,0{,}176]$.
+\column{0.48\textwidth}
+\textbf{Gene mais exigente:} gene 58,
+$\widehat d=0{,}0074$, $\widehat\sigma_{BB}=0{,}0280$.
+\[
+\widehat n=\frac{-\ln(0{,}05)\cdot 1\cdot \widehat\sigma_{BB}\sqrt{2m}}{\widehat d}
+\]
+\[
+=\frac{2{,}996\cdot 0{,}0280\cdot 4{,}47}{0{,}0074}\approx \mathbf{51}
+\]
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------- M3
+\begin{frame}{M3 --- Roteamento: BBs pelo uso operacional}
+\begin{columns}[T]
+\column{0.56\textwidth}
+\small
+\textbf{Sinal:} uso real. BFS a partir do sorvedouro em cada $t$;
+$\route(u)=\text{node\_acc}[u]/(TM)$ (fração de caminhos mínimos que usam $u$).
+\medskip
+
+\textbf{Regra de BB:} \emph{críticos de roteamento}, $\route(u)\ge\phi$
+($\phi=0{,}05$) $\Rightarrow |R_\phi|=9$.
+\medskip
+
+\textbf{Interpretação:} relés que \emph{efetivamente carregam tráfego} (gargalos),
+não apenas "em alcance". Mais esparso que a cobertura.
+\medskip
+
+\textbf{$H_u^*$:} ligado.
+\column{0.44\textwidth}
+\centering
+\includegraphics[width=\linewidth]{method3_spatial.png}\\
+{\scriptsize Candidatos coloridos por $\route(u)$}
+\end{columns}
+\bbfooter{9 genes nomeados $\;\to\;$ $m=9$ blocos vinculantes $\;\to\;$
+$\Nhat_3=\mathbf{26}$ (pior gene 6)}
+\end{frame}
+
+\begin{frame}{M3 --- cálculo dos termos da fórmula}
+\small
+\begin{columns}[T]
+\column{0.52\textwidth}
+\textbf{Ordem $k_u=1$} $\Rightarrow 2^{k_u-1}=1$.
+\medskip
+
+\textbf{$m$ (blocos vinculantes):} 9 nomeados ($|R_\phi|$)
+$\xrightarrow{\text{filtro signif.}}$ $m=9$ (nenhum descartado)
+$\Rightarrow \sqrt{2m}=4{,}24$.
+\medskip
+
+\textbf{$\widehat\sigma_{BB,u},\widehat d_u$} ($R=60$ complementos):
+faixa $\widehat\sigma_{BB}\in[0{,}042,\,0{,}200]$,
+$\widehat d\in[0{,}024,\,0{,}166]$ --- sinais mais fortes (genes de gargalo).
+\column{0.48\textwidth}
+\textbf{Gene mais exigente:} gene 6,
+$\widehat d=0{,}0573$, $\widehat\sigma_{BB}=0{,}1144$.
+\[
+\widehat n=\frac{-\ln(0{,}05)\cdot 1\cdot \widehat\sigma_{BB}\sqrt{2m}}{\widehat d}
+\]
+\[
+=\frac{2{,}996\cdot 0{,}1144\cdot 4{,}24}{0{,}0573}\approx \mathbf{26}
+\]
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------- M4
+\begin{frame}{M4 --- MILP: BBs pelo ótimo exato}
+\begin{columns}[T]
+\column{0.56\textwidth}
+\small
+\textbf{Sinal:} referência exata. Uma varredura MILP resolve P2 à
+(quase-)otimalidade; ótimo $r_{\mathrm{opt}}=18$ relés.
+\medskip
+
+\textbf{Regra de BB:} genes \emph{instalados} na solução MILP de mínimo número de
+relés (18 genes).
+\medskip
+
+\textbf{Interpretação:} o que um solucionador exato julga correto; cada relé
+instalado é um gene obrigatório.
+\medskip
+
+\textbf{$H_u^*$:} \emph{alelo do MILP} (ligado).
+\column{0.44\textwidth}
+\centering
+\includegraphics[width=\linewidth]{method4_milp_landscape.png}\\
+{\scriptsize Soluções MILP pontuadas pelo surrogate; $r_{\mathrm{opt}}$ tracejado}
+\end{columns}
+\bbfooter{18 genes nomeados $\;\to\;$ $m=14$ blocos vinculantes $\;\to\;$
+$\Nhat_4=\mathbf{73}$ (pior gene 62)}
+\end{frame}
+
+\begin{frame}{M4 --- cálculo dos termos da fórmula}
+\small
+\begin{columns}[T]
+\column{0.52\textwidth}
+\textbf{Ordem $k_u=1$} $\Rightarrow 2^{k_u-1}=1$.
+\medskip
+
+\textbf{$m$ (blocos vinculantes):} 18 genes do ótimo MILP
+$\xrightarrow{\text{filtro signif.}}$ $m=14$ (4 redundantes no surrogate descartados)
+$\Rightarrow \sqrt{2m}=5{,}29$.
+\medskip
+
+\textbf{$\widehat\sigma_{BB,u},\widehat d_u$} ($R=60$ complementos,
+$H_u^*$ = alelo do MILP):
+faixa $\widehat\sigma_{BB}\in[0{,}011,\,0{,}169]$,
+$\widehat d\in[0{,}007,\,0{,}132]$.
+\column{0.48\textwidth}
+\textbf{Gene mais exigente:} gene 62,
+$\widehat d=0{,}0077$, $\widehat\sigma_{BB}=0{,}0355$.
+\[
+\widehat n=\frac{-\ln(0{,}05)\cdot 1\cdot \widehat\sigma_{BB}\sqrt{2m}}{\widehat d}
+\]
+\[
+=\frac{2{,}996\cdot 0{,}0355\cdot 5{,}29}{0{,}0077}\approx \mathbf{73}
+\]
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------- M5
+\begin{frame}{M5 --- União: BBs por evidência combinada}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\small
+\textbf{Sinal:} união das evidências estruturais (cobertura $\cup$ roteamento).
+\medskip
+
+\textbf{Regra de BB:} $\cov(u)\ge\theta TM \ \vee\ \route(u)\ge\phi$
+$\Rightarrow$ 22 genes críticos.
+\medskip
+
+\textbf{Interpretação:} qualquer gene crítico por \emph{cobertura} ou por
+\emph{roteamento} entra; visão mais abrangente.
+\medskip
+
+\textbf{$H_u^*$:} ligado.
+\column{0.5\textwidth}
+\centering
+\includegraphics[height=0.66\textheight]{method5_blocks_spatial.png}\\
+{\scriptsize Cinza: preenchimento; coloridos: blocos de ordem 1 (tamanho $\propto \widehat n_u$)}
+\end{columns}
+\bbfooter{22 genes nomeados $\;\to\;$ $m=18$ blocos vinculantes $\;\to\;$
+$\Nhat_5=\mathbf{75}$ (pior gene 13)}
+\end{frame}
+
+\begin{frame}{M5 --- cálculo dos termos da fórmula}
+\small
+\begin{columns}[T]
+\column{0.52\textwidth}
+\textbf{Ordem $k_u=1$} $\Rightarrow 2^{k_u-1}=1$.
+\medskip
+
+\textbf{$m$ (blocos vinculantes):} 22 nomeados ($\cov\cup\route$)
+$\xrightarrow{\text{filtro signif.}}$ $m=18$ (4 descartados)
+$\Rightarrow \sqrt{2m}=6{,}00$.
+\medskip
+
+\textbf{$\widehat\sigma_{BB,u},\widehat d_u$} ($R=60$ complementos):
+faixa $\widehat\sigma_{BB}\in[0{,}021,\,0{,}200]$,
+$\widehat d\in[0{,}006,\,0{,}146]$.
+\column{0.48\textwidth}
+\textbf{Gene mais exigente:} gene 13,
+$\widehat d=0{,}0063$, $\widehat\sigma_{BB}=0{,}0262$.
+\[
+\widehat n=\frac{-\ln(0{,}05)\cdot 1\cdot \widehat\sigma_{BB}\sqrt{2m}}{\widehat d}
+\]
+\[
+=\frac{2{,}996\cdot 0{,}0262\cdot 6{,}00}{0{,}0063}\approx \mathbf{75}
+\]
+\end{columns}
+\end{frame}
+
+% ======================================================================
+\section{Resultados}
+% ======================================================================
+\begin{frame}{Estimativas por fonte e fusão}
+\centering
+Instância \texttt{ind2}: $N=64$, $M=4$, $R=50$, $T=181$, $\alpha=0{,}05$.
+\vfill
+\small
+\begin{tabular}{lccc}
+\toprule
+Estimador (fonte de BB) & $\Nhat$ & blocos $m$ & pior gene\\
+\midrule
+M1 --- elites do AG        & 56 & 18 & 60\\
+M2 --- cobertura           & 51 & 10 & 58\\
+M3 --- roteamento          & 26 &  9 &  6\\
+M4 --- ótimo MILP          & 73 & 14 & 62\\
+M5 --- união               & 75 & 18 & 13\\
+\midrule
+\textbf{Fusão: média ponderada} & \textbf{37} & \multicolumn{2}{c}{IC $[29,44]$}\\
+\textbf{Fusão: envelope conservador} & \textbf{75} & \multicolumn{2}{c}{$\max_i$}\\
+\bottomrule
+\end{tabular}
+\vfill
+\normalsize
+As cinco fontes concordam dentro de um fator $\approx 3$ ($26$--$75$).
+\end{frame}
+
+\begin{frame}{Reconciliação: a mesma fórmula}
+\centering
+\includegraphics[height=0.62\textheight]{combined_comparison.png}
+\vfill
+\footnotesize
+A linha pontilhada ($2839$) é a \emph{mesma fórmula} com blocos de grade. A
+diferença de $\sim\!100\times$ é \alert{inteiramente o fator $2^{k-1}$} sob ordem
+de bloco incorreta --- não o sinal/ruído.
+\end{frame}
+
+% ======================================================================
+\section{Conclusão}
+% ======================================================================
+\begin{frame}{Conclusão}
+\begin{itemize}
+  \item A fórmula de ruína do jogador não estava errada --- estava
+        \textbf{mal parametrizada} (ordem de bloco).
+  \item \textbf{Bloco construtivo de P2 = ordem 1} (um gene indispensável por vez):
+        $2^{k-1}=1$.
+  \item Sob essa definição, a \emph{mesma} fórmula com \textbf{cinco fontes
+        independentes} de BB concorda na faixa $\mathbf{26}$--$\mathbf{75}$.
+  \item Recomendação: consenso $\mathbf{37}$, conservador $\mathbf{75}$
+        (vs.\ $2839$ da aplicação ingênua).
+\end{itemize}
+\vfill
+\begin{block}{Reprodutibilidade}
+\texttt{methods/} (fontes + \texttt{bb\_core.py} + fusão), \texttt{results/}
+(saídas e figuras), \texttt{run\_all.sh} (pipeline).
+\end{block}
+\vfill
+\centering\large Obrigado!
+\end{frame}
+
+\end{document}
